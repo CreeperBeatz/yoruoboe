@@ -3854,16 +3854,22 @@ index d1e7d56..bb7650f 100644
 +use tokio::time::sleep;
 diff --git a/rslib/src/sync/http_client/io_monitor_wasm.rs b/rslib/src/sync/http_client/io_monitor_wasm.rs
 new file mode 100644
-index 0000000..ced64c8
+index 0000000..e673a80
 --- /dev/null
 +++ b/rslib/src/sync/http_client/io_monitor_wasm.rs
-@@ -0,0 +1,136 @@
+@@ -0,0 +1,177 @@
 +// Copyright: Ankitects Pty Ltd and contributors
 +// License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 +
 +//! The browser's version of io_monitor.rs: requests go through fetch, bodies are
 +//! compressed in one go rather than streamed (fetch can't stream uploads
 +//! everywhere), and the stall timeout runs on setTimeout.
++//!
++//! Redirects: AnkiWeb answers 308 with an account's own server, which the client
++//! is to retry at (see meta_with_redirect). The browser would follow a redirect
++//! itself, to the wrong address, so the page's forwarder (deploy/serve.py) sends
++//! the new location in REDIRECT_HEADER instead of Location; here it becomes the
++//! forwarder's address for that server.
 +
 +use std::sync::Arc;
 +use std::sync::Mutex;
@@ -3948,6 +3954,15 @@ index 0000000..ced64c8
 +                .error_for_status()?;
 +            // fetch has sent the whole body once headers come back
 +            self.touch(|i| i.bytes_sent += request_total);
++            if resp.status() == StatusCode::PERMANENT_REDIRECT {
++                let location = resp
++                    .headers()
++                    .get(REDIRECT_HEADER)
++                    .or_else(|| resp.headers().get(reqwest::header::LOCATION))
++                    .and_then(|v| v.to_str().ok())
++                    .or_bad_request("missing location header")?;
++                None::<()>.or_permanent_redirect(reachable(location))?;
++            }
 +            let response_total = resp
 +                .headers()
 +                .get(&ORIGINAL_SIZE)
@@ -3993,6 +4008,32 @@ index 0000000..ced64c8
 +    pub total_bytes_to_send: u32,
 +    pub bytes_received: u32,
 +    pub total_bytes_to_receive: u32,
++}
++
++/// Where the forwarder puts a redirect's location (it drops Location, so the
++/// browser doesn't follow).
++const REDIRECT_HEADER: &str = "anki-sync-redirect";
++
++/// An AnkiWeb server's address, as the page reaches it: through its forwarder,
++/// at <origin>/aw/<host>/. Other addresses are left alone.
++fn reachable(location: &str) -> String {
++    let Ok(url) = reqwest::Url::parse(location) else {
++        return location.to_string();
++    };
++    let host = url.host_str().unwrap_or_default();
++    let Some(name) = host.strip_suffix(".ankiweb.net") else {
++        return location.to_string();
++    };
++    let digits = name.strip_prefix("sync").unwrap_or("x");
++    if !digits.chars().all(|c| c.is_ascii_digit()) {
++        return location.to_string();
++    }
++    let origin = js_sys::Reflect::get(&js_sys::global(), &"location".into())
++        .and_then(|loc| js_sys::Reflect::get(&loc, &"origin".into()))
++        .ok()
++        .and_then(|o| o.as_string())
++        .unwrap_or_default();
++    format!("{origin}/aw/{name}{}", url.path())
 +}
 diff --git a/rslib/src/sync/http_client/mod.rs b/rslib/src/sync/http_client/mod.rs
 index 7366cfb..ebacf0b 100644

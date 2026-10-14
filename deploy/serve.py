@@ -42,7 +42,11 @@ UNTRUSTED_PAGES = {"editor", "image-occlusion"}
 # the browser beyond what the protocol needs.
 FORWARD_REQUEST = {"anki-sync", "content-type", "content-length"}
 # Response headers passed back.
-FORWARD_RESPONSE = {"content-type", "content-length", "anki-original-size", "location"}
+FORWARD_RESPONSE = {"content-type", "content-length", "anki-original-size"}
+# AnkiWeb answers 308 with an account's own server, for the client to retry there. The
+# browser would follow a Location itself (to the wrong place), so the location goes in
+# this header instead; the app's engine reads it.
+REDIRECT_HEADER = "anki-sync-redirect"
 
 TYPES = {
     ".js": "text/javascript",
@@ -113,9 +117,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(resp.status, resp.reason)
             for k, v in resp.getheaders():
                 if k.lower() in FORWARD_RESPONSE:
-                    if k.lower() == "location":
-                        v = self._local_location(v)
                     self.send_header(k, v)
+                elif k.lower() == "location":
+                    self.send_header(REDIRECT_HEADER, v)
             self.send_header("Cache-Control", "no-store")
             if resp.getheader("content-length") is None:
                 self.send_header("Connection", "close")
@@ -127,13 +131,6 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(502, f"sync server unreachable: {exc}")
         finally:
             conn.close()
-
-    @staticmethod
-    def _local_location(location: str) -> str:
-        """A redirect to another AnkiWeb host, as the app reaches it."""
-        u = urlsplit(location)
-        m = re.match(r"^(sync\d{0,3})\.ankiweb\.net$", u.hostname or "")
-        return f"/aw/{m.group(1)}{u.path}" if m else location
 
     # ---- the app's files --------------------------------------------------------------
 

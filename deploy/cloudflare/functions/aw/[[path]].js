@@ -29,12 +29,11 @@ export async function onRequestPost({ request, params }) {
     const v = resp.headers.get(k)
     if (v) out.set(k, v)
   }
+  // AnkiWeb answers 308 with an account's own server, for the client to retry there.
+  // The browser would follow a Location itself (to the wrong place), so the location
+  // goes in a header of its own; the app's engine reads it.
   const location = resp.headers.get('location')
-  if (location) {
-    // a move to another AnkiWeb host, as the app reaches it
-    const m = /^https:\/\/(sync\d{0,3})\.ankiweb\.net(\/.*)$/.exec(location)
-    out.set('location', m ? `/aw/${m[1]}${m[2]}` : location)
-  }
+  if (location) out.set('anki-sync-redirect', location)
   return new Response(resp.body, { status: resp.status, headers: out })
 }
 
