@@ -1,0 +1,4947 @@
+diff --git a/.cargo/config.toml b/.cargo/config.toml
+index 6dcfac7..d4f9ccb 100644
+--- a/.cargo/config.toml
++++ b/.cargo/config.toml
+@@ -16,3 +16,6 @@ rustflags = ["-C", "target-feature=+crt-static"]
+ 
+ [target.x86_64-pc-windows-msvc]
+ linker = "rust-lld"
++
++[target.wasm32-unknown-unknown]
++rustflags = ["--cfg", "getrandom_backend=\"wasm_js\""]
+diff --git a/Cargo.lock b/Cargo.lock
+index 8657f23..21532d4 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -2,6 +2,18 @@
+ # It is not intended for manual editing.
+ version = 3
+ 
++[[package]]
++name = "accessory"
++version = "2.1.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "cc86a613208ca7d144ca24f6ec49c5cdfa5c05a46f2f7ab5880ff99371f165de"
++dependencies = [
++ "macroific 3.1.0",
++ "proc-macro2",
++ "quote",
++ "syn 3.0.9",
++]
++
+ [[package]]
+ name = "addr2line"
+ version = "0.24.2"
+@@ -95,10 +107,12 @@ dependencies = [
+  "futures",
+  "hex",
+  "htmlescape",
++ "http",
+  "hyper",
+  "id_tree",
+  "inflections",
+  "itertools 0.14.0",
++ "js-sys",
+  "nom",
+  "num_cpus",
+  "num_enum",
+@@ -128,6 +142,8 @@ dependencies = [
+  "sha1",
+  "sha2 0.11.0",
+  "snafu 0.8.8",
++ "sqlite-wasm-rs",
++ "sqlite-wasm-vfs",
+  "strum 0.27.2",
+  "syn 2.0.106",
+  "tempfile",
+@@ -140,6 +156,9 @@ dependencies = [
+  "unic-ucd-category",
+  "unicase",
+  "unicode-normalization",
++ "wasm-bindgen",
++ "wasm-bindgen-futures",
++ "web-time",
+  "windows",
+  "wiremock",
+  "zip",
+@@ -178,7 +197,9 @@ name = "anki_io"
+ version = "0.0.0"
+ dependencies = [
+  "camino",
++ "js-sys",
+  "rand 0.9.4",
++ "rusqlite",
+  "snafu 0.8.8",
+  "tempfile",
+ ]
+@@ -224,6 +245,26 @@ dependencies = [
+  "walkdir",
+ ]
+ 
++[[package]]
++name = "anki_wasm"
++version = "0.0.0"
++dependencies = [
++ "anki",
++ "anki_io",
++ "anki_proto",
++ "console_error_panic_hook",
++ "getrandom 0.2.16",
++ "getrandom 0.3.3",
++ "getrandom 0.4.2",
++ "js-sys",
++ "prost",
++ "sqlite-wasm-rs",
++ "sqlite-wasm-vfs",
++ "time",
++ "wasm-bindgen",
++ "wasm-bindgen-futures",
++]
++
+ [[package]]
+ name = "anstream"
+ version = "0.6.20"
+@@ -620,7 +661,9 @@ checksum = "c469d952047f47f91b68d1cba3f10d63c11d73e4636f24f08daf0278abf01c4d"
+ dependencies = [
+  "android-tzdata",
+  "iana-time-zone",
++ "js-sys",
+  "num-traits",
++ "wasm-bindgen",
+  "windows-link",
+ ]
+ 
+@@ -774,6 +817,16 @@ dependencies = [
+  "ninja_gen",
+ ]
+ 
++[[package]]
++name = "console_error_panic_hook"
++version = "0.1.7"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
++dependencies = [
++ "cfg-if",
++ "wasm-bindgen",
++]
++
+ [[package]]
+ name = "const-oid"
+ version = "0.10.2"
+@@ -1030,6 +1083,20 @@ version = "0.1.4"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "092966b41edc516079bdf31ec78a2e0588d1d0c08f78b91d8307215928642b2b"
+ 
++[[package]]
++name = "delegate-display"
++version = "3.0.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "54e3a499943fd5180aeffcb708164ffb22125ceeccb05491b5297981d37d6249"
++dependencies = [
++ "impartial-ord",
++ "itoa",
++ "macroific 3.1.0",
++ "proc-macro2",
++ "quote",
++ "syn 3.0.9",
++]
++
+ [[package]]
+ name = "deranged"
+ version = "0.5.2"
+@@ -1081,6 +1148,28 @@ dependencies = [
+  "syn 2.0.106",
+ ]
+ 
++[[package]]
++name = "derive_more"
++version = "2.1.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "d751e9e49156b02b44f9c1815bcb94b984cdcc4396ecc32521c739452808b134"
++dependencies = [
++ "derive_more-impl",
++]
++
++[[package]]
++name = "derive_more-impl"
++version = "2.1.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "799a97264921d8623a957f6c3b9011f3b5492f557bbb7a5a19b7fa6d06ba8dcb"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "rustc_version",
++ "syn 2.0.106",
++ "unicode-xid",
++]
++
+ [[package]]
+ name = "difflib"
+ version = "0.4.0"
+@@ -1269,6 +1358,18 @@ version = "0.1.9"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
+ 
++[[package]]
++name = "fancy_constructor"
++version = "2.1.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "4a8211ab12c36b63c269e17873331dc1da196a3edb7a5c79015677ef972da34a"
++dependencies = [
++ "macroific 3.1.0",
++ "proc-macro2",
++ "quote",
++ "syn 3.0.9",
++]
++
+ [[package]]
+ name = "fastrand"
+ version = "2.3.0"
+@@ -1361,6 +1462,12 @@ version = "0.1.5"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
+ 
++[[package]]
++name = "foldhash"
++version = "0.2.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
++
+ [[package]]
+ name = "foreign-types"
+ version = "0.3.2"
+@@ -1566,9 +1673,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "26145e563e54f2cadc477553f1ec5ee650b00862f0a58bcd12cbdc5f0ea2d2f4"
+ dependencies = [
+  "cfg-if",
++ "js-sys",
+  "libc",
+  "r-efi 5.3.0",
+  "wasi 0.14.3+wasi-0.2.4",
++ "wasm-bindgen",
+ ]
+ 
+ [[package]]
+@@ -1657,16 +1766,25 @@ version = "0.15.5"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
+ dependencies = [
+- "foldhash",
++ "foldhash 0.1.5",
++]
++
++[[package]]
++name = "hashbrown"
++version = "0.16.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
++dependencies = [
++ "foldhash 0.2.0",
+ ]
+ 
+ [[package]]
+ name = "hashlink"
+-version = "0.10.0"
++version = "0.11.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "7382cf6263419f2d8df38c55d7da83da5c18aef87fc7a7fc1fb1e344edfe14c1"
++checksum = "824e001ac4f3012dd16a264bec811403a67ca9deb6c102fc5049b32c4574b35f"
+ dependencies = [
+- "hashbrown",
++ "hashbrown 0.16.1",
+ ]
+ 
+ [[package]]
+@@ -2062,6 +2180,51 @@ dependencies = [
+  "winapi-util",
+ ]
+ 
++[[package]]
++name = "impartial-ord"
++version = "2.0.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "bc680e03d1a08bdc1c01b60e0c39723430ced63d8cabd93cee0449b6ba916a25"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "syn 3.0.9",
++]
++
++[[package]]
++name = "indexed_db_futures"
++version = "0.6.4"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "69ff41758cbd104e91033bb53bc449bec7eea65652960c81eddf3fc146ecea19"
++dependencies = [
++ "accessory",
++ "cfg-if",
++ "delegate-display",
++ "derive_more",
++ "fancy_constructor",
++ "indexed_db_futures_macros_internal",
++ "js-sys",
++ "sealed 0.6.0",
++ "smallvec",
++ "thiserror 2.0.16",
++ "tokio",
++ "wasm-bindgen",
++ "wasm-bindgen-futures",
++ "web-sys",
++]
++
++[[package]]
++name = "indexed_db_futures_macros_internal"
++version = "1.0.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "caeba94923b68f254abef921cea7e7698bf4675fdd89d7c58bf1ed885b49a27d"
++dependencies = [
++ "macroific 2.0.0",
++ "proc-macro2",
++ "quote",
++ "syn 2.0.106",
++]
++
+ [[package]]
+ name = "indexmap"
+ version = "2.11.0"
+@@ -2069,7 +2232,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "f2481980430f9f78649238835720ddccc57e52df14ffce1c6f37391d61b563e9"
+ dependencies = [
+  "equivalent",
+- "hashbrown",
++ "hashbrown 0.15.5",
+  "serde",
+ ]
+ 
+@@ -2229,11 +2392,12 @@ dependencies = [
+ 
+ [[package]]
+ name = "js-sys"
+-version = "0.3.77"
++version = "0.3.106"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "1cfaf33c695fc6e08064efbc1f72ec937429614f25eef83af942d0e227c3a28f"
++checksum = "7883d941dae510fb2d978fc3fe018c71c9e2892fd38854de3e8b92c2e5ad9cc5"
+ dependencies = [
+- "once_cell",
++ "cfg-if",
++ "futures-util",
+  "wasm-bindgen",
+ ]
+ 
+@@ -2298,9 +2462,9 @@ dependencies = [
+ 
+ [[package]]
+ name = "libsqlite3-sys"
+-version = "0.34.0"
++version = "0.37.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "91632f3b4fb6bd1d72aa3d78f41ffecfcf2b1a6648d8c241dbe7dbfaf4875e15"
++checksum = "b1f111c8c41e7c61a49cd34e44c7619462967221a6443b0ec299e0ac30cfb9b1"
+ dependencies = [
+  "cc",
+  "pkg-config",
+@@ -2414,6 +2578,102 @@ version = "0.1.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "c41e0c4fef86961ac6d6f8a82609f55f31b05e4fce149ac5710e439df7619ba4"
+ 
++[[package]]
++name = "macroific"
++version = "2.0.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "89f276537b4b8f981bf1c13d79470980f71134b7bdcc5e6e911e910e556b0285"
++dependencies = [
++ "macroific_attr_parse 2.0.0",
++ "macroific_core 2.0.0",
++ "macroific_macro 2.0.0",
++]
++
++[[package]]
++name = "macroific"
++version = "3.1.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "cc8ab95c98294764c0f1eacebdb5b027849201b71fbc383871fe991a1de7eb83"
++dependencies = [
++ "macroific_attr_parse 3.1.0",
++ "macroific_core 3.1.0",
++ "macroific_macro 3.1.0",
++]
++
++[[package]]
++name = "macroific_attr_parse"
++version = "2.0.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "ad4023761b45fcd36abed8fb7ae6a80456b0a38102d55e89a57d9a594a236be9"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "sealed 0.6.0",
++ "syn 2.0.106",
++]
++
++[[package]]
++name = "macroific_attr_parse"
++version = "3.1.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "bf9b7bdb92825e6a507392b12f0570ade17480be20f4ca951b9071b40deba1d1"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "sealed 0.7.0",
++ "syn 3.0.9",
++]
++
++[[package]]
++name = "macroific_core"
++version = "2.0.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "d0a7594d3c14916fa55bef7e9d18c5daa9ed410dd37504251e4b75bbdeec33e3"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "sealed 0.6.0",
++ "syn 2.0.106",
++]
++
++[[package]]
++name = "macroific_core"
++version = "3.1.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "edc880da2bc00d6d87f748805e242d670e248d1b9b6fcef3190503210b6cf056"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "sealed 0.7.0",
++ "syn 3.0.9",
++]
++
++[[package]]
++name = "macroific_macro"
++version = "2.0.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "4da6f2ed796261b0a74e2b52b42c693bb6dee1effba3a482c49592659f824b3b"
++dependencies = [
++ "macroific_attr_parse 2.0.0",
++ "macroific_core 2.0.0",
++ "proc-macro2",
++ "quote",
++ "syn 2.0.106",
++]
++
++[[package]]
++name = "macroific_macro"
++version = "3.1.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "201faf668c264432727fb64e44407bcfcf1f5f8153bf4ec248eb6bbe4a39b144"
++dependencies = [
++ "macroific_attr_parse 3.1.0",
++ "macroific_core 3.1.0",
++ "proc-macro2",
++ "quote",
++ "syn 3.0.9",
++]
++
+ [[package]]
+ name = "maplit"
+ version = "1.0.2"
+@@ -3790,6 +4050,16 @@ dependencies = [
+  "pyo3",
+ ]
+ 
++[[package]]
++name = "rsqlite-vfs"
++version = "0.1.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "c51c9ae4df8a7fba42103df5c621fa3c37eccf3a3c650879e90fc48b11cc192c"
++dependencies = [
++ "hashbrown 0.16.1",
++ "thiserror 2.0.16",
++]
++
+ [[package]]
+ name = "runner"
+ version = "0.0.0"
+@@ -3815,9 +4085,9 @@ dependencies = [
+ 
+ [[package]]
+ name = "rusqlite"
+-version = "0.36.0"
++version = "0.39.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "3de23c3319433716cf134eed225fe9986bc24f63bed9be9f20c329029e672dc7"
++checksum = "a0d2b0146dd9661bf67bb107c0bb2a55064d556eeb3fc314151b957f313bcd4e"
+ dependencies = [
+  "bitflags 2.9.3",
+  "fallible-iterator",
+@@ -3825,6 +4095,7 @@ dependencies = [
+  "hashlink",
+  "libsqlite3-sys",
+  "smallvec",
++ "sqlite-wasm-rs",
+ ]
+ 
+ [[package]]
+@@ -3953,6 +4224,28 @@ version = "1.2.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
+ 
++[[package]]
++name = "sealed"
++version = "0.6.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "22f968c5ea23d555e670b449c1c5e7b2fc399fdaec1d304a17cd48e288abc107"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "syn 2.0.106",
++]
++
++[[package]]
++name = "sealed"
++version = "0.7.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "9b68e2ea526d9fb32f23ca8894fb5da9e743f34c2f41701f0501dc8a25c4b343"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "syn 3.0.9",
++]
++
+ [[package]]
+ name = "security-framework"
+ version = "2.11.1"
+@@ -4279,6 +4572,34 @@ version = "0.9.9"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "3763264f6b73151db08c50ff20d7d8a0b8796e021cdea7ceedad07b80155fa0e"
+ 
++[[package]]
++name = "sqlite-wasm-rs"
++version = "0.5.5"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "dc3efc0da82635d7e1ced0053bbbfa8c7ab9645d0bf36ceb4f7127bb85315d75"
++dependencies = [
++ "cc",
++ "js-sys",
++ "rsqlite-vfs",
++ "wasm-bindgen",
++]
++
++[[package]]
++name = "sqlite-wasm-vfs"
++version = "0.2.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "7f7a5c9ac229421d577bb5a9bb59048838509958b218dd4e0b3c1214a87c361e"
++dependencies = [
++ "indexed_db_futures",
++ "js-sys",
++ "rsqlite-vfs",
++ "thiserror 2.0.16",
++ "tokio",
++ "wasm-bindgen",
++ "wasm-bindgen-futures",
++ "web-sys",
++]
++
+ [[package]]
+ name = "stable_deref_trait"
+ version = "1.2.0"
+@@ -4410,6 +4731,17 @@ dependencies = [
+  "unicode-ident",
+ ]
+ 
++[[package]]
++name = "syn"
++version = "3.0.9"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "d78c8dee4c7bf0e14673097256fed6142ce9d3b85a408189d07482442145823b"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "unicode-ident",
++]
++
+ [[package]]
+ name = "sync_wrapper"
+ version = "1.0.2"
+@@ -4578,6 +4910,7 @@ checksum = "743bd48c283afc0388f9b8827b976905fb217ad9e647fae3a379a9283c4def2c"
+ dependencies = [
+  "deranged",
+  "itoa",
++ "js-sys",
+  "num-conv",
+  "powerfmt",
+  "serde_core",
+@@ -5226,48 +5559,33 @@ dependencies = [
+ 
+ [[package]]
+ name = "wasm-bindgen"
+-version = "0.2.100"
++version = "0.2.129"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "1edc8929d7499fc4e8f0be2262a241556cfc54a0bea223790e71446f2aab1ef5"
++checksum = "9bb54f33acc68fd454578d9820b0bde1a1a3d17aa17bb7b6595806d02886d409"
+ dependencies = [
+  "cfg-if",
+  "once_cell",
+  "rustversion",
+  "wasm-bindgen-macro",
+-]
+-
+-[[package]]
+-name = "wasm-bindgen-backend"
+-version = "0.2.100"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "2f0a0651a5c2bc21487bde11ee802ccaf4c51935d0d3d42a6101f98161700bc6"
+-dependencies = [
+- "bumpalo",
+- "log",
+- "proc-macro2",
+- "quote",
+- "syn 2.0.106",
+  "wasm-bindgen-shared",
+ ]
+ 
+ [[package]]
+ name = "wasm-bindgen-futures"
+-version = "0.4.50"
++version = "0.4.79"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "555d470ec0bc3bb57890405e5d4322cc9ea83cebb085523ced7be4144dac1e61"
++checksum = "3cbab34de2d982e9b48e18d216d04c4a6f641066ff19ffb699980f591ee3610e"
+ dependencies = [
+- "cfg-if",
+  "js-sys",
+- "once_cell",
++ "tokio",
+  "wasm-bindgen",
+- "web-sys",
+ ]
+ 
+ [[package]]
+ name = "wasm-bindgen-macro"
+-version = "0.2.100"
++version = "0.2.129"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "7fe63fc6d09ed3792bd0897b314f53de8e16568c2b3f7982f468c0bf9bd0b407"
++checksum = "2e29d0c35b16e224a7eeb5cd2d25e3e1968fbd65604117b44d3b789d00ee8535"
+ dependencies = [
+  "quote",
+  "wasm-bindgen-macro-support",
+@@ -5275,22 +5593,22 @@ dependencies = [
+ 
+ [[package]]
+ name = "wasm-bindgen-macro-support"
+-version = "0.2.100"
++version = "0.2.129"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "8ae87ea40c9f689fc23f209965b6fb8a99ad69aeeb0231408be24920604395de"
++checksum = "6f501a8bc3719dba86ef8ae4728879c08001bea749eb1333ac5b91e040e2a6b7"
+ dependencies = [
++ "bumpalo",
+  "proc-macro2",
+  "quote",
+- "syn 2.0.106",
+- "wasm-bindgen-backend",
++ "syn 3.0.9",
+  "wasm-bindgen-shared",
+ ]
+ 
+ [[package]]
+ name = "wasm-bindgen-shared"
+-version = "0.2.100"
++version = "0.2.129"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "1a05d73b933a847d6cccdda8f838a22ff101ad9bf93e33684f39c1f5f0eece3d"
++checksum = "23f0c9c52aa7cd7d77769a4cfe2a9adb1b331f489a41d912ce14513d5ab995c6"
+ dependencies = [
+  "unicode-ident",
+ ]
+@@ -5337,16 +5655,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "47b807c72e1bac69382b3a6fb3dbe8ea4c0ed87ff5629b8685ae6b9a611028fe"
+ dependencies = [
+  "bitflags 2.9.3",
+- "hashbrown",
++ "hashbrown 0.15.5",
+  "indexmap",
+  "semver",
+ ]
+ 
+ [[package]]
+ name = "web-sys"
+-version = "0.3.77"
++version = "0.3.106"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "33b6dd2ef9186f1f2072e409e99cd22a975331a6b3591b12c764e0e55c60d5d2"
++checksum = "88261b9deccee56594c11a3460c462c41f58d148598fe70ad77070126a68aba4"
+ dependencies = [
+  "js-sys",
+  "wasm-bindgen",
+diff --git a/Cargo.toml b/Cargo.toml
+index 61b2ac7..c064e78 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -13,6 +13,7 @@ members = [
+   "ftl",
+   "pylib/rsbridge",
+   "rslib",
++  "rslib/wasm",
+   "rslib/i18n",
+   "rslib/io",
+   "rslib/linkchecker",
+@@ -113,7 +114,7 @@ rand = "0.9.4"
+ rayon = "1.10.0"
+ regex = "1.11.1"
+ reqwest = { version = "0.12.20", default-features = false, features = ["json", "socks", "stream", "multipart"] }
+-rusqlite = { version = "0.36.0", features = ["trace", "functions", "collation", "bundled"] }
++rusqlite = { version = "0.39.0", features = ["trace", "functions", "collation", "bundled", "fallible_uint", "serialize"] }
+ rustls-pemfile = "2.2.0"
+ same-file = "1.0.6"
+ scopeguard = "1.2.0"
+@@ -130,7 +131,7 @@ syn = { version = "2.0.103", features = ["parsing", "printing"] }
+ tar = "0.4.46"
+ tempfile = "3.20.0"
+ termcolor = "1.4.1"
+-tokio = { version = "1.45", features = ["fs", "rt-multi-thread", "macros", "signal"] }
++tokio = { version = "1.45", features = ["macros", "sync"] }
+ tokio-util = { version = "0.7.15", features = ["io"] }
+ tower-http = { version = "0.6.6", features = ["trace"] }
+ tracing = { version = "0.1.41", features = ["max_level_trace", "release_max_level_debug"] }
+@@ -147,7 +148,7 @@ windows = { version = "0.61.3", features = ["Media_SpeechSynthesis", "Media_Core
+ wiremock = "0.6.3"
+ xz2 = "0.1.7"
+ zip = { version = "4.1.0", default-features = false, features = ["deflate", "time"] }
+-zstd = { version = "0.13.3", features = ["zstdmt"] }
++zstd = { version = "0.13.3" }
+ 
+ # Apply mild optimizations to our dependencies in dev mode, which among other things
+ # improves sha2 performance by about 21x. Opt 1 chosen due to
+@@ -180,3 +181,11 @@ lto = true
+ inherits = "dev"
+ # TODO: consider setting once caching issues are fixed (#5318)
+ # incremental = false
++
++# The browser engine (rslib/wasm): small, since every phone downloads it.
++[profile.wasm]
++inherits = "release"
++opt-level = "s"
++lto = true
++codegen-units = 1
++strip = "debuginfo"
+diff --git a/rslib/Cargo.toml b/rslib/Cargo.toml
+index bd3d7eb..82b3be5 100644
+--- a/rslib/Cargo.toml
++++ b/rslib/Cargo.toml
+@@ -48,11 +48,7 @@ ammonia.workspace = true
+ anki_i18n.workspace = true
+ anki_io.workspace = true
+ anki_proto.workspace = true
+-async-compression.workspace = true
+ async-trait.workspace = true
+-axum.workspace = true
+-axum-client-ip.workspace = true
+-axum-extra.workspace = true
+ bitflags.workspace = true
+ blake3.workspace = true
+ bytes.workspace = true
+@@ -71,12 +67,11 @@ fnv.workspace = true
+ fsrs.workspace = true
+ futures.workspace = true
+ hex.workspace = true
++http = "1"
+ htmlescape.workspace = true
+-hyper.workspace = true
+ id_tree.workspace = true
+ itertools.workspace = true
+ nom.workspace = true
+-num_cpus.workspace = true
+ num_enum.workspace = true
+ once_cell.workspace = true
+ pbkdf2.workspace = true
+@@ -104,17 +99,38 @@ sha2.workspace = true
+ snafu.workspace = true
+ strum.workspace = true
+ tempfile.workspace = true
+-tokio.workspace = true
+-tokio-util.workspace = true
+-tower-http.workspace = true
+ tracing.workspace = true
+-tracing-appender.workspace = true
+ tracing-subscriber.workspace = true
+ unic-ucd-category.workspace = true
+ unicase.workspace = true
+ unicode-normalization.workspace = true
+ zip.workspace = true
+-zstd.workspace = true
+ 
+ [target.'cfg(windows)'.dependencies]
+ windows.workspace = true
++
++# The sync server, and the threaded runtime and streaming I/O the desktop client uses.
++[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
++async-compression.workspace = true
++axum.workspace = true
++axum-client-ip.workspace = true
++axum-extra.workspace = true
++hyper.workspace = true
++num_cpus.workspace = true
++tokio = { workspace = true, features = ["fs", "rt-multi-thread", "signal"] }
++tokio-util.workspace = true
++tower-http.workspace = true
++tracing-appender.workspace = true
++zstd = { workspace = true, features = ["zstdmt"] }
++
++# In the browser: no threads, no file system, fetch for HTTP, time from the JS clock.
++[target.'cfg(target_arch = "wasm32")'.dependencies]
++tokio = { workspace = true }
++zstd = { workspace = true }
++js-sys = "0.3"
++wasm-bindgen = "0.2"
++wasm-bindgen-futures = "0.4"
++web-time = "1"
++chrono = { workspace = true, features = ["wasmbind"] }
++sqlite-wasm-rs = "0.5"
++sqlite-wasm-vfs = "0.2"
+diff --git a/rslib/io/Cargo.toml b/rslib/io/Cargo.toml
+index 78605ef..09cf00a 100644
+--- a/rslib/io/Cargo.toml
++++ b/rslib/io/Cargo.toml
+@@ -13,3 +13,7 @@ camino.workspace = true
+ rand.workspace = true
+ snafu.workspace = true
+ tempfile.workspace = true
++
++[target.'cfg(target_arch = "wasm32")'.dependencies]
++js-sys = "0.3"
++rusqlite.workspace = true
+diff --git a/rslib/io/src/error.rs b/rslib/io/src/error.rs
+index c33ad5c..f8e36e5 100644
+--- a/rslib/io/src/error.rs
++++ b/rslib/io/src/error.rs
+@@ -78,8 +78,8 @@ impl FileIoError {
+     }
+ }
+ 
+-impl From<tempfile::PathPersistError> for FileIoError {
+-    fn from(err: tempfile::PathPersistError) -> Self {
++impl From<crate::tempfile::PathPersistError> for FileIoError {
++    fn from(err: crate::tempfile::PathPersistError) -> Self {
+         FileIoError {
+             path: err.path.to_path_buf(),
+             op: FileOp::Persist,
+@@ -88,8 +88,8 @@ impl From<tempfile::PathPersistError> for FileIoError {
+     }
+ }
+ 
+-impl From<tempfile::PersistError> for FileIoError {
+-    fn from(err: tempfile::PersistError) -> Self {
++impl From<crate::tempfile::PersistError> for FileIoError {
++    fn from(err: crate::tempfile::PersistError) -> Self {
+         FileIoError {
+             path: err.file.path().into(),
+             op: FileOp::Persist,
+diff --git a/rslib/io/src/lib.rs b/rslib/io/src/lib.rs
+index 16b951e..ab296b1 100644
+--- a/rslib/io/src/lib.rs
++++ b/rslib/io/src/lib.rs
+@@ -2,10 +2,81 @@
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
+ mod error;
++#[cfg(target_arch = "wasm32")]
++pub mod vfs;
++
++/// std::fs, or in the browser, the stand-in in [vfs].
++pub mod fs {
++    #[cfg(not(target_arch = "wasm32"))]
++    pub use std::fs::*;
++
++    #[cfg(target_arch = "wasm32")]
++    pub use crate::vfs::{
++        canonicalize, copy, create_dir, create_dir_all, exists, metadata, read, read_dir,
++        read_to_string, remove_dir, remove_dir_all, remove_file, rename, symlink_metadata, write,
++        DirEntry, File, FileTimes, FileType, Metadata, OpenOptions, ReadDir,
++    };
++}
++
++/// The tempfile crate, or its stand-in in the browser.
++pub mod tempfile {
++    #[cfg(not(target_arch = "wasm32"))]
++    pub use ::tempfile::*;
++
++    #[cfg(target_arch = "wasm32")]
++    pub use crate::vfs::{
++        tempdir, NamedTempFile, PathPersistError, PersistError, TempDir, TempPath,
++    };
++}
++
++/// The current time. std's SystemTime::now() panics in the browser.
++pub fn now() -> std::time::SystemTime {
++    #[cfg(target_arch = "wasm32")]
++    return vfs::now();
++    #[cfg(not(target_arch = "wasm32"))]
++    return std::time::SystemTime::now();
++}
++
++/// Path::exists(), through [fs].
++pub fn exists(path: impl AsRef<Path>) -> bool {
++    fs::metadata(path).is_ok()
++}
++
++/// Path::is_file(), through [fs].
++pub fn is_file(path: impl AsRef<Path>) -> bool {
++    fs::metadata(path).is_ok_and(|m| m.is_file())
++}
++
++/// Path::is_dir(), through [fs].
++pub fn is_dir(path: impl AsRef<Path>) -> bool {
++    fs::metadata(path).is_ok_and(|m| m.is_dir())
++}
+ 
+-use std::fs::File;
+-use std::fs::FileTimes;
+-use std::fs::OpenOptions;
++/// The SQLite journal mode to use instead of `wanted`. In the browser's
++/// IndexedDB store, journals stay in memory (and syncing to disk is off).
++pub fn sqlite_journal_mode(wanted: &'static str) -> &'static str {
++    #[cfg(target_arch = "wasm32")]
++    return vfs::journal_mode(wanted);
++    #[cfg(not(target_arch = "wasm32"))]
++    return wanted;
++}
++
++/// Before SQLite opens a database file that may have been written through
++/// [fs]: in the browser this moves it to where SQLite looks.
++pub fn prepare_for_sqlite(path: impl AsRef<Path>) -> Result<()> {
++    #[cfg(target_arch = "wasm32")]
++    vfs::prepare_for_sqlite(path.as_ref()).context(FileIoSnafu {
++        path: path.as_ref(),
++        op: FileOp::Open,
++    })?;
++    #[cfg(not(target_arch = "wasm32"))]
++    let _ = path;
++    Ok(())
++}
++
++use fs::File;
++use fs::FileTimes;
++use fs::OpenOptions;
+ use std::io::Read;
+ use std::io::Seek;
+ use std::io::Write;
+@@ -13,10 +84,10 @@ use std::path::Component;
+ use std::path::Path;
+ use std::path::PathBuf;
+ 
++use crate::tempfile::NamedTempFile;
+ use camino::Utf8Path;
+ use camino::Utf8PathBuf;
+ use snafu::ResultExt;
+-use tempfile::NamedTempFile;
+ 
+ pub use crate::error::FileIoError;
+ pub use crate::error::FileIoSnafu;
+@@ -49,7 +120,7 @@ pub fn open_file_ext(path: impl AsRef<Path>, options: OpenOptions) -> Result<Fil
+ 
+ /// See [std::fs::write].
+ pub fn write_file(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result<()> {
+-    std::fs::write(&path, contents).context(FileIoSnafu {
++    fs::write(&path, contents).context(FileIoSnafu {
+         path: path.as_ref(),
+         op: FileOp::Write,
+     })
+@@ -97,7 +168,7 @@ pub fn set_file_times(path: impl AsRef<Path>, times: FileTimes) -> Result<()> {
+ /// See [std::fs::remove_file].
+ #[allow(dead_code)]
+ pub fn remove_file(path: impl AsRef<Path>) -> Result<()> {
+-    std::fs::remove_file(&path).context(FileIoSnafu {
++    fs::remove_file(&path).context(FileIoSnafu {
+         path: path.as_ref(),
+         op: FileOp::Remove,
+     })
+@@ -106,7 +177,7 @@ pub fn remove_file(path: impl AsRef<Path>) -> Result<()> {
+ /// See [std::fs::remove_dir_all].
+ #[allow(dead_code)]
+ pub fn remove_dir_all(path: impl AsRef<Path>) -> Result<()> {
+-    std::fs::remove_dir_all(&path).context(FileIoSnafu {
++    fs::remove_dir_all(&path).context(FileIoSnafu {
+         path: path.as_ref(),
+         op: FileOp::Remove,
+     })
+@@ -114,7 +185,7 @@ pub fn remove_dir_all(path: impl AsRef<Path>) -> Result<()> {
+ 
+ /// See [std::fs::create_dir].
+ pub fn create_dir(path: impl AsRef<Path>) -> Result<()> {
+-    std::fs::create_dir(&path).context(FileIoSnafu {
++    fs::create_dir(&path).context(FileIoSnafu {
+         path: path.as_ref(),
+         op: FileOp::Create,
+     })
+@@ -122,7 +193,7 @@ pub fn create_dir(path: impl AsRef<Path>) -> Result<()> {
+ 
+ /// See [std::fs::create_dir_all].
+ pub fn create_dir_all(path: impl AsRef<Path>) -> Result<()> {
+-    std::fs::create_dir_all(&path).context(FileIoSnafu {
++    fs::create_dir_all(&path).context(FileIoSnafu {
+         path: path.as_ref(),
+         op: FileOp::Create,
+     })
+@@ -130,7 +201,7 @@ pub fn create_dir_all(path: impl AsRef<Path>) -> Result<()> {
+ 
+ /// See [std::fs::read].
+ pub fn read_file(path: impl AsRef<Path>) -> Result<Vec<u8>> {
+-    std::fs::read(&path).context(FileIoSnafu {
++    fs::read(&path).context(FileIoSnafu {
+         path: path.as_ref(),
+         op: FileOp::Read,
+     })
+@@ -138,7 +209,7 @@ pub fn read_file(path: impl AsRef<Path>) -> Result<Vec<u8>> {
+ 
+ /// See [std::fs::read_to_string].
+ pub fn read_to_string(path: impl AsRef<Path>) -> Result<String> {
+-    std::fs::read_to_string(&path).context(FileIoSnafu {
++    fs::read_to_string(&path).context(FileIoSnafu {
+         path: path.as_ref(),
+         op: FileOp::Read,
+     })
+@@ -146,7 +217,7 @@ pub fn read_to_string(path: impl AsRef<Path>) -> Result<String> {
+ 
+ /// See [std::fs::copy].
+ pub fn copy_file(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<u64> {
+-    std::fs::copy(&src, &dst).context(FileIoSnafu {
++    fs::copy(&src, &dst).context(FileIoSnafu {
+         path: dst.as_ref(),
+         op: FileOp::CopyFrom(src.as_ref().to_owned()),
+     })
+@@ -158,7 +229,7 @@ pub fn copy_if_newer(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<boo
+     let src = src.as_ref();
+     let dst = dst.as_ref();
+ 
+-    let should_copy = if !dst.exists() {
++    let should_copy = if !exists(dst) {
+         true
+     } else {
+         let src_time = modified_time(src)?;
+@@ -194,9 +265,9 @@ const LOCKED_SECTION_LEN_BYTES: usize = 512;
+ const LOCKED_SECTION_END_BYTE: usize = LOCKED_SECTION_START_BYTE + LOCKED_SECTION_LEN_BYTES;
+ 
+ fn read_locked_db_file_inner(path: impl AsRef<Path>) -> std::io::Result<Vec<u8>> {
+-    let size = std::fs::metadata(&path)?.len() as usize;
++    let size = fs::metadata(&path)?.len() as usize;
+     if size < LOCKED_SECTION_END_BYTE {
+-        return std::fs::read(path);
++        return fs::read(path);
+     }
+ 
+     let mut file = File::open(&path)?;
+@@ -209,8 +280,8 @@ fn read_locked_db_file_inner(path: impl AsRef<Path>) -> std::io::Result<Vec<u8>>
+ }
+ 
+ /// See [std::fs::metadata].
+-pub fn metadata(path: impl AsRef<Path>) -> Result<std::fs::Metadata> {
+-    std::fs::metadata(&path).context(FileIoSnafu {
++pub fn metadata(path: impl AsRef<Path>) -> Result<fs::Metadata> {
++    fs::metadata(&path).context(FileIoSnafu {
+         path: path.as_ref(),
+         op: FileOp::Metadata,
+     })
+@@ -226,7 +297,7 @@ pub fn modified_time(path: impl AsRef<Path>) -> Result<std::time::SystemTime> {
+ 
+ pub fn new_tempfile() -> Result<NamedTempFile> {
+     NamedTempFile::new().context(FileIoSnafu {
+-        path: std::env::temp_dir(),
++        path: PathBuf::from("temp dir"),
+         op: FileOp::Create,
+     })
+ }
+@@ -260,7 +331,7 @@ pub fn atomic_rename(file: NamedTempFile, target: &Path, fsync: bool) -> Result<
+         })?;
+     }
+     file.persist(target)?;
+-    #[cfg(not(windows))]
++    #[cfg(not(any(windows, target_arch = "wasm32")))]
+     if fsync {
+         let abs_path;
+         let parent = match target.parent() {
+@@ -287,12 +358,10 @@ pub fn atomic_rename(file: NamedTempFile, target: &Path, fsync: bool) -> Result<
+ 
+ /// Like [std::fs::read_dir], but only yielding files. [Err]s are not filtered.
+ pub fn read_dir_files(path: impl AsRef<Path>) -> Result<ReadDirFiles> {
+-    std::fs::read_dir(&path)
+-        .map(ReadDirFiles)
+-        .context(FileIoSnafu {
+-            path: path.as_ref(),
+-            op: FileOp::Read,
+-        })
++    fs::read_dir(&path).map(ReadDirFiles).context(FileIoSnafu {
++        path: path.as_ref(),
++        op: FileOp::Read,
++    })
+ }
+ 
+ /// A shortcut for gathering the utf8 paths in a folder into a vec. Will
+@@ -320,10 +389,10 @@ pub fn filename_is_safe(name: &str) -> bool {
+     first_element_normal && components.next().is_none()
+ }
+ 
+-pub struct ReadDirFiles(std::fs::ReadDir);
++pub struct ReadDirFiles(fs::ReadDir);
+ 
+ impl Iterator for ReadDirFiles {
+-    type Item = std::io::Result<std::fs::DirEntry>;
++    type Item = std::io::Result<fs::DirEntry>;
+ 
+     fn next(&mut self) -> Option<Self::Item> {
+         let next = self.0.next();
+@@ -372,9 +441,9 @@ pub fn is_case_sensitive(dir: &Path) -> bool {
+         let fname_upper = fname.to_uppercase();
+         if open_file_ext(dir.join(&fname), opt.to_owned()).is_ok() {
+             let sensitive = open_file_ext(dir.join(&fname_upper), opt.to_owned()).is_ok();
+-            let _ = std::fs::remove_file(dir.join(fname));
++            let _ = fs::remove_file(dir.join(fname));
+             if sensitive {
+-                let _ = std::fs::remove_file(dir.join(fname_upper));
++                let _ = fs::remove_file(dir.join(fname_upper));
+             }
+             return sensitive;
+         }
+diff --git a/rslib/io/src/vfs.rs b/rslib/io/src/vfs.rs
+new file mode 100644
+index 0000000..ccced34
+--- /dev/null
++++ b/rslib/io/src/vfs.rs
+@@ -0,0 +1,1223 @@
++// Copyright: Ankitects Pty Ltd and contributors
++// License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
++
++//! A file system for the browser build, standing in for std::fs (which always
++//! fails on wasm32-unknown-unknown). Anki's code reaches it through
++//! [crate::fs].
++//!
++//! Two stores sit behind it:
++//! - Databases (the collection, the media database) live in a pool of OPFS
++//!   files that SQLite opens itself. The host registers that pool with
++//!   [set_db_pool]; files here can be read, written and renamed into it.
++//! - Every other file (media, temp files, imports and exports) is a row in
++//!   `files.db`, an SQLite database in that same pool.
++//!
++//! Open files share one buffer per path, as an OS would: data written through
++//! one handle is seen by the next open, and by SQLite once
++//! [prepare_for_sqlite] has moved the file into the pool. A buffer is saved
++//! when it is flushed or its last handle is closed.
++
++use std::cell::RefCell;
++use std::collections::HashMap;
++use std::fmt;
++use std::io;
++use std::io::Read;
++use std::io::Seek;
++use std::io::SeekFrom;
++use std::io::Write;
++use std::path::Component;
++use std::path::Path;
++use std::path::PathBuf;
++use std::rc::Rc;
++use std::rc::Weak;
++use std::time::Duration;
++use std::time::SystemTime;
++use std::time::UNIX_EPOCH;
++
++use rusqlite::params;
++use rusqlite::Connection;
++use rusqlite::OptionalExtension;
++
++/// Where the database pool keeps `files.db`.
++const FILES_DB: &str = "/files.db";
++const TEMP_DIR: &str = "/tmp";
++
++/// The pool of database files SQLite uses (OPFS sync access handles).
++pub trait DbPool {
++    fn exists(&self, path: &str) -> bool;
++    fn import(&self, path: &str, data: &[u8]) -> io::Result<()>;
++    fn export(&self, path: &str) -> io::Result<Vec<u8>>;
++    fn delete(&self, path: &str) -> io::Result<bool>;
++    /// True if journals must stay in memory (the IndexedDB store only holds
++    /// page-aligned database files).
++    fn memory_journal(&self) -> bool {
++        false
++    }
++}
++
++/// The journal mode to use instead of `wanted`, given the store.
++pub fn journal_mode(wanted: &'static str) -> &'static str {
++    if with_pool(|p| Ok(p.memory_journal())).unwrap_or(false) {
++        "memory"
++    } else {
++        wanted
++    }
++}
++
++thread_local! {
++    static POOL: RefCell<Option<Box<dyn DbPool>>> = const { RefCell::new(None) };
++    static FILES: RefCell<Option<Connection>> = const { RefCell::new(None) };
++    static OPEN: RefCell<HashMap<String, Weak<RefCell<Node>>>> = RefCell::new(HashMap::new());
++}
++
++/// Called once by the host, after it has installed the pool as SQLite's
++/// default VFS.
++pub fn set_db_pool(pool: Box<dyn DbPool>) {
++    POOL.with(|p| *p.borrow_mut() = Some(pool));
++}
++
++fn with_pool<T>(f: impl FnOnce(&dyn DbPool) -> io::Result<T>) -> io::Result<T> {
++    POOL.with(|p| match p.borrow().as_deref() {
++        Some(pool) => f(pool),
++        None => Err(io::Error::other("file storage not ready")),
++    })
++}
++
++fn in_pool(path: &str) -> bool {
++    with_pool(|p| Ok(p.exists(path))).unwrap_or(false)
++}
++
++fn sql_err(err: rusqlite::Error) -> io::Error {
++    io::Error::other(err)
++}
++
++fn with_files<T>(f: impl FnOnce(&Connection) -> rusqlite::Result<T>) -> io::Result<T> {
++    FILES.with(|cell| {
++        let mut cell = cell.borrow_mut();
++        if cell.is_none() {
++            *cell = Some(open_files_db().map_err(sql_err)?);
++        }
++        f(cell.as_ref().unwrap()).map_err(sql_err)
++    })
++}
++
++fn open_files_db() -> rusqlite::Result<Connection> {
++    let db = Connection::open(FILES_DB)?;
++    // One connection, so exclusive locking lets WAL work without shared memory;
++    // NORMAL sync keeps the file consistent and skips a flush per file.
++    db.pragma_update(None, "locking_mode", "exclusive")?;
++    let journal = journal_mode("wal");
++    db.pragma_update(None, "journal_mode", journal)?;
++    db.pragma_update(
++        None,
++        "synchronous",
++        if journal == "memory" { "off" } else { "normal" },
++    )?;
++    db.execute_batch(
++        "create table if not exists entries (
++            path text primary key not null,
++            parent text not null,
++            is_dir integer not null,
++            data blob,
++            size integer not null,
++            mtime integer not null
++        ) without rowid;
++        create index if not exists entries_parent on entries (parent);",
++    )?;
++    Ok(db)
++}
++
++/// Run several file operations as one transaction (much faster for many files).
++pub fn batch<T>(f: impl FnOnce() -> T) -> T {
++    let began = with_files(|db| {
++        if db.is_autocommit() {
++            db.execute_batch("begin")?;
++            Ok(true)
++        } else {
++            Ok(false)
++        }
++    })
++    .unwrap_or(false);
++    let out = f();
++    if began {
++        let _ = with_files(|db| db.execute_batch("commit"));
++    }
++    out
++}
++
++// ---- paths ----------------------------------------------------------------------------
++
++/// Absolute, with `.` and `..` resolved and `/` separators.
++fn key(path: &Path) -> String {
++    let mut parts: Vec<String> = vec![];
++    for comp in path.components() {
++        match comp {
++            Component::Normal(p) => parts.push(p.to_string_lossy().into_owned()),
++            Component::ParentDir => {
++                parts.pop();
++            }
++            Component::CurDir | Component::RootDir | Component::Prefix(_) => {}
++        }
++    }
++    format!("/{}", parts.join("/"))
++}
++
++fn parent_key(key: &str) -> String {
++    match key.rfind('/') {
++        Some(0) | None => "/".into(),
++        Some(i) => key[..i].into(),
++    }
++}
++
++fn name_of(key: &str) -> &str {
++    key.rsplit('/').next().unwrap_or("")
++}
++
++pub fn now_millis() -> i64 {
++    js_sys::Date::now() as i64
++}
++
++/// The current time; std's SystemTime::now() panics in the browser.
++pub fn now() -> SystemTime {
++    UNIX_EPOCH + Duration::from_millis(now_millis() as u64)
++}
++
++fn time_of(millis: i64) -> SystemTime {
++    UNIX_EPOCH + Duration::from_millis(millis.max(0) as u64)
++}
++
++fn millis_of(time: SystemTime) -> i64 {
++    time.duration_since(UNIX_EPOCH)
++        .map(|d| d.as_millis() as i64)
++        .unwrap_or(0)
++}
++
++fn not_found(key: &str) -> io::Error {
++    io::Error::new(io::ErrorKind::NotFound, format!("{key}: not found"))
++}
++
++// ---- stored entries -----------------------------------------------------------------------
++
++struct Stat {
++    is_dir: bool,
++    size: u64,
++    mtime: i64,
++}
++
++fn stored_stat(key: &str) -> io::Result<Option<Stat>> {
++    with_files(|db| {
++        db.query_row(
++            "select is_dir, size, mtime from entries where path = ?",
++            [key],
++            |row| {
++                Ok(Stat {
++                    is_dir: row.get(0)?,
++                    size: row.get(1)?,
++                    mtime: row.get(2)?,
++                })
++            },
++        )
++        .optional()
++    })
++}
++
++fn stored_read(key: &str) -> io::Result<Option<Vec<u8>>> {
++    with_files(|db| {
++        db.query_row(
++            "select data from entries where path = ? and is_dir = 0",
++            [key],
++            |row| row.get::<_, Vec<u8>>(0),
++        )
++        .optional()
++    })
++}
++
++fn ensure_dirs(db: &Connection, dir: &str, mtime: i64) -> rusqlite::Result<()> {
++    let mut dir = dir.to_string();
++    loop {
++        if dir == "/" {
++            return Ok(());
++        }
++        let parent = parent_key(&dir);
++        let added = db.execute(
++            "insert or ignore into entries (path, parent, is_dir, data, size, mtime)
++             values (?, ?, 1, null, 0, ?)",
++            params![dir, parent, mtime],
++        )?;
++        if added == 0 {
++            return Ok(());
++        }
++        dir = parent;
++    }
++}
++
++/// Save a file's contents: into the pool if a database lives at that path,
++/// otherwise into files.db.
++fn store(key: &str, data: &[u8], mtime: i64) -> io::Result<()> {
++    if in_pool(key) {
++        return with_pool(|p| p.import(key, data));
++    }
++    with_files(|db| {
++        ensure_dirs(db, &parent_key(key), mtime)?;
++        db.execute(
++            "insert or replace into entries (path, parent, is_dir, data, size, mtime)
++             values (?, ?, 0, ?, ?, ?)",
++            params![key, parent_key(key), data, data.len() as i64, mtime],
++        )?;
++        Ok(())
++    })
++}
++
++fn unstore(key: &str) -> io::Result<bool> {
++    let removed =
++        with_files(|db| db.execute("delete from entries where path = ? and is_dir = 0", [key]))?;
++    if removed > 0 {
++        return Ok(true);
++    }
++    if in_pool(key) {
++        return with_pool(|p| p.delete(key));
++    }
++    Ok(false)
++}
++
++/// Contents of a file not currently open.
++fn load(key: &str) -> io::Result<Option<Vec<u8>>> {
++    if let Some(data) = stored_read(key)? {
++        return Ok(Some(data));
++    }
++    if in_pool(key) {
++        return with_pool(|p| p.export(key)).map(Some);
++    }
++    Ok(None)
++}
++
++// ---- open files ---------------------------------------------------------------------------
++
++struct Node {
++    key: String,
++    data: Vec<u8>,
++    mtime: i64,
++    dirty: bool,
++    /// Removed while open: not saved again.
++    unlinked: bool,
++    /// A database SQLite has (see prepare_for_sqlite): the pool holds the real
++    /// contents, which SQLite changes behind this handle's back.
++    pooled: bool,
++}
++
++impl Node {
++    /// For a database, the contents as SQLite left them.
++    fn refresh(&mut self) {
++        if self.pooled && !self.dirty && !self.unlinked {
++            if let Ok(data) = with_pool(|p| p.export(&self.key)) {
++                self.data = data;
++            }
++        }
++    }
++
++    fn save(&mut self) -> io::Result<()> {
++        if self.dirty && !self.unlinked {
++            store(&self.key, &self.data, self.mtime)?;
++        }
++        self.dirty = false;
++        Ok(())
++    }
++}
++
++fn open_node(key: &str) -> Option<Rc<RefCell<Node>>> {
++    OPEN.with(|open| open.borrow().get(key).and_then(Weak::upgrade))
++}
++
++fn register_node(node: &Rc<RefCell<Node>>) {
++    let key = node.borrow().key.clone();
++    OPEN.with(|open| {
++        let mut open = open.borrow_mut();
++        open.retain(|_, weak| weak.strong_count() > 0);
++        open.insert(key, Rc::downgrade(node));
++    });
++}
++
++/// Save any unsaved writes to `key`, so the stores see them.
++fn settle(key: &str) -> io::Result<()> {
++    if let Some(node) = open_node(key) {
++        node.borrow_mut().save()?;
++    }
++    Ok(())
++}
++
++/// Before SQLite opens `path`: a file written here (a downloaded or unpacked
++/// collection) moves into the pool, where SQLite can open it.
++pub fn prepare_for_sqlite(path: &Path) -> io::Result<()> {
++    let key = key(path);
++    settle(&key)?;
++    if let Some(data) = stored_read(&key)? {
++        // An empty file (a fresh temp file) is left for SQLite to create.
++        if !data.is_empty() {
++            with_pool(|p| p.import(&key, &data))?;
++        }
++        with_files(|db| db.execute("delete from entries where path = ?", [&key]))?;
++    }
++    // Handles open on it now read what SQLite writes.
++    if let Some(node) = open_node(&key) {
++        let mut n = node.borrow_mut();
++        n.pooled = true;
++        n.dirty = false;
++    }
++    Ok(())
++}
++
++// ---- std::fs's API ------------------------------------------------------------------------
++
++#[derive(Clone, Debug, Default)]
++pub struct OpenOptions {
++    read: bool,
++    write: bool,
++    append: bool,
++    truncate: bool,
++    create: bool,
++    create_new: bool,
++}
++
++impl OpenOptions {
++    pub fn new() -> Self {
++        Self::default()
++    }
++    pub fn read(&mut self, v: bool) -> &mut Self {
++        self.read = v;
++        self
++    }
++    pub fn write(&mut self, v: bool) -> &mut Self {
++        self.write = v;
++        self
++    }
++    pub fn append(&mut self, v: bool) -> &mut Self {
++        self.append = v;
++        self
++    }
++    pub fn truncate(&mut self, v: bool) -> &mut Self {
++        self.truncate = v;
++        self
++    }
++    pub fn create(&mut self, v: bool) -> &mut Self {
++        self.create = v;
++        self
++    }
++    pub fn create_new(&mut self, v: bool) -> &mut Self {
++        self.create_new = v;
++        self
++    }
++
++    pub fn open<P: AsRef<Path>>(&self, path: P) -> io::Result<File> {
++        let key = key(path.as_ref());
++        let writable = self.write || self.append;
++        let node = match open_node(&key) {
++            Some(node) => {
++                if self.create_new {
++                    return Err(io::Error::new(io::ErrorKind::AlreadyExists, key));
++                }
++                node
++            }
++            None => {
++                let existing = load(&key)?;
++                if let Some(stat) = stored_stat(&key)? {
++                    if stat.is_dir {
++                        return Err(io::Error::new(io::ErrorKind::IsADirectory, key));
++                    }
++                }
++                let (data, mtime, dirty) = match existing {
++                    Some(_) if self.create_new => {
++                        return Err(io::Error::new(io::ErrorKind::AlreadyExists, key));
++                    }
++                    Some(data) => {
++                        let mtime = stored_stat(&key)?
++                            .map(|s| s.mtime)
++                            .unwrap_or_else(now_millis);
++                        (data, mtime, false)
++                    }
++                    None if writable && (self.create || self.create_new) => {
++                        (vec![], now_millis(), true)
++                    }
++                    None => return Err(not_found(&key)),
++                };
++                let pooled = in_pool(&key) && stored_stat(&key)?.is_none();
++                let node = Rc::new(RefCell::new(Node {
++                    key,
++                    data,
++                    mtime,
++                    dirty,
++                    unlinked: false,
++                    pooled,
++                }));
++                register_node(&node);
++                node
++            }
++        };
++        if writable && self.truncate && !self.append {
++            let mut n = node.borrow_mut();
++            n.data.clear();
++            n.dirty = true;
++            n.mtime = now_millis();
++        }
++        Ok(File {
++            node,
++            pos: std::cell::Cell::new(0),
++            read: self.read || !writable,
++            write: writable,
++            append: self.append,
++        })
++    }
++}
++
++pub struct File {
++    node: Rc<RefCell<Node>>,
++    pos: std::cell::Cell<u64>,
++    read: bool,
++    write: bool,
++    append: bool,
++}
++
++impl fmt::Debug for File {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        write!(f, "File({})", self.node.borrow().key)
++    }
++}
++
++impl File {
++    pub fn open<P: AsRef<Path>>(path: P) -> io::Result<File> {
++        OpenOptions::new().read(true).open(path)
++    }
++
++    pub fn create<P: AsRef<Path>>(path: P) -> io::Result<File> {
++        OpenOptions::new()
++            .write(true)
++            .create(true)
++            .truncate(true)
++            .open(path)
++    }
++
++    pub fn create_new<P: AsRef<Path>>(path: P) -> io::Result<File> {
++        OpenOptions::new()
++            .read(true)
++            .write(true)
++            .create_new(true)
++            .open(path)
++    }
++
++    pub fn options() -> OpenOptions {
++        OpenOptions::new()
++    }
++
++    pub fn metadata(&self) -> io::Result<Metadata> {
++        self.node.borrow_mut().refresh();
++        let n = self.node.borrow();
++        Ok(Metadata {
++            is_dir: false,
++            len: n.data.len() as u64,
++            mtime: n.mtime,
++        })
++    }
++
++    pub fn sync_all(&self) -> io::Result<()> {
++        self.node.borrow_mut().save()
++    }
++
++    pub fn sync_data(&self) -> io::Result<()> {
++        self.sync_all()
++    }
++
++    pub fn set_len(&self, size: u64) -> io::Result<()> {
++        let mut n = self.node.borrow_mut();
++        n.data.resize(size as usize, 0);
++        n.dirty = true;
++        n.mtime = now_millis();
++        Ok(())
++    }
++
++    pub fn set_times(&self, times: FileTimes) -> io::Result<()> {
++        if let Some(modified) = times.modified {
++            let mut n = self.node.borrow_mut();
++            n.mtime = millis_of(modified);
++            n.dirty = true;
++            n.save()?;
++        }
++        Ok(())
++    }
++
++    pub fn set_modified(&self, time: SystemTime) -> io::Result<()> {
++        self.set_times(FileTimes::new().set_modified(time))
++    }
++
++    pub fn try_clone(&self) -> io::Result<File> {
++        Ok(File {
++            node: self.node.clone(),
++            pos: std::cell::Cell::new(self.pos.get()),
++            read: self.read,
++            write: self.write,
++            append: self.append,
++        })
++    }
++
++    fn read_at_pos(&self, buf: &mut [u8]) -> io::Result<usize> {
++        if !self.read {
++            return Err(io::Error::new(
++                io::ErrorKind::PermissionDenied,
++                "not open for reading",
++            ));
++        }
++        if self.pos.get() == 0 {
++            self.node.borrow_mut().refresh();
++        }
++        let n = self.node.borrow();
++        let start = (self.pos.get() as usize).min(n.data.len());
++        let count = buf.len().min(n.data.len() - start);
++        buf[..count].copy_from_slice(&n.data[start..start + count]);
++        drop(n);
++        self.pos.set((start + count) as u64);
++        Ok(count)
++    }
++
++    fn write_at_pos(&self, buf: &[u8]) -> io::Result<usize> {
++        if !self.write {
++            return Err(io::Error::new(
++                io::ErrorKind::PermissionDenied,
++                "not open for writing",
++            ));
++        }
++        let mut n = self.node.borrow_mut();
++        if self.append {
++            self.pos.set(n.data.len() as u64);
++        }
++        let start = self.pos.get() as usize;
++        let end = start + buf.len();
++        if n.data.len() < end {
++            n.data.resize(end, 0);
++        }
++        n.data[start..end].copy_from_slice(buf);
++        n.dirty = true;
++        n.mtime = now_millis();
++        drop(n);
++        self.pos.set(end as u64);
++        Ok(buf.len())
++    }
++
++    fn seek_to(&self, pos: SeekFrom) -> io::Result<u64> {
++        if matches!(pos, SeekFrom::End(_)) {
++            self.node.borrow_mut().refresh();
++        }
++        let len = self.node.borrow().data.len() as i64;
++        let new = match pos {
++            SeekFrom::Start(p) => p as i64,
++            SeekFrom::End(off) => len + off,
++            SeekFrom::Current(off) => self.pos.get() as i64 + off,
++        };
++        if new < 0 {
++            return Err(io::Error::new(
++                io::ErrorKind::InvalidInput,
++                "seek before start",
++            ));
++        }
++        self.pos.set(new as u64);
++        Ok(new as u64)
++    }
++}
++
++impl Drop for File {
++    fn drop(&mut self) {
++        // the last handle saves
++        if Rc::strong_count(&self.node) == 1 {
++            let _ = self.node.borrow_mut().save();
++        }
++    }
++}
++
++impl Read for File {
++    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
++        self.read_at_pos(buf)
++    }
++}
++
++impl Read for &File {
++    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
++        self.read_at_pos(buf)
++    }
++}
++
++impl Write for &File {
++    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
++        self.write_at_pos(buf)
++    }
++
++    fn flush(&mut self) -> io::Result<()> {
++        Ok(())
++    }
++}
++
++impl Seek for &File {
++    fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
++        self.seek_to(pos)
++    }
++}
++
++impl Write for File {
++    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
++        self.write_at_pos(buf)
++    }
++
++    fn flush(&mut self) -> io::Result<()> {
++        Ok(())
++    }
++}
++
++impl Seek for File {
++    fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
++        self.seek_to(pos)
++    }
++}
++
++#[derive(Clone, Copy, Debug, Default)]
++pub struct FileTimes {
++    modified: Option<SystemTime>,
++}
++
++impl FileTimes {
++    pub fn new() -> Self {
++        Self::default()
++    }
++    pub fn set_accessed(self, _t: SystemTime) -> Self {
++        self
++    }
++    pub fn set_modified(mut self, t: SystemTime) -> Self {
++        self.modified = Some(t);
++        self
++    }
++}
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct FileType {
++    is_dir: bool,
++}
++
++impl FileType {
++    pub fn is_dir(&self) -> bool {
++        self.is_dir
++    }
++    pub fn is_file(&self) -> bool {
++        !self.is_dir
++    }
++    pub fn is_symlink(&self) -> bool {
++        false
++    }
++}
++
++#[derive(Clone, Debug)]
++pub struct Metadata {
++    is_dir: bool,
++    len: u64,
++    mtime: i64,
++}
++
++impl Metadata {
++    pub fn len(&self) -> u64 {
++        self.len
++    }
++    pub fn is_empty(&self) -> bool {
++        self.len == 0
++    }
++    pub fn is_dir(&self) -> bool {
++        self.is_dir
++    }
++    pub fn is_file(&self) -> bool {
++        !self.is_dir
++    }
++    pub fn is_symlink(&self) -> bool {
++        false
++    }
++    pub fn file_type(&self) -> FileType {
++        FileType {
++            is_dir: self.is_dir,
++        }
++    }
++    pub fn modified(&self) -> io::Result<SystemTime> {
++        Ok(time_of(self.mtime))
++    }
++    pub fn accessed(&self) -> io::Result<SystemTime> {
++        self.modified()
++    }
++    pub fn created(&self) -> io::Result<SystemTime> {
++        Err(io::Error::new(
++            io::ErrorKind::Unsupported,
++            "no creation time",
++        ))
++    }
++}
++
++pub fn metadata<P: AsRef<Path>>(path: P) -> io::Result<Metadata> {
++    let key = key(path.as_ref());
++    if key == "/" {
++        return Ok(Metadata {
++            is_dir: true,
++            len: 0,
++            mtime: 0,
++        });
++    }
++    if let Some(node) = open_node(&key) {
++        node.borrow_mut().refresh();
++        let n = node.borrow();
++        if !n.unlinked {
++            return Ok(Metadata {
++                is_dir: false,
++                len: n.data.len() as u64,
++                mtime: n.mtime,
++            });
++        }
++    }
++    if let Some(stat) = stored_stat(&key)? {
++        return Ok(Metadata {
++            is_dir: stat.is_dir,
++            len: stat.size,
++            mtime: stat.mtime,
++        });
++    }
++    if in_pool(&key) {
++        let len = with_pool(|p| p.export(&key))?.len() as u64;
++        return Ok(Metadata {
++            is_dir: false,
++            len,
++            mtime: now_millis(),
++        });
++    }
++    Err(not_found(&key))
++}
++
++pub fn symlink_metadata<P: AsRef<Path>>(path: P) -> io::Result<Metadata> {
++    metadata(path)
++}
++
++pub fn exists<P: AsRef<Path>>(path: P) -> io::Result<bool> {
++    match metadata(path) {
++        Ok(_) => Ok(true),
++        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(false),
++        Err(e) => Err(e),
++    }
++}
++
++pub fn read<P: AsRef<Path>>(path: P) -> io::Result<Vec<u8>> {
++    let key = key(path.as_ref());
++    if let Some(node) = open_node(&key) {
++        node.borrow_mut().refresh();
++        let n = node.borrow();
++        if !n.unlinked {
++            return Ok(n.data.clone());
++        }
++    }
++    load(&key)?.ok_or_else(|| not_found(&key))
++}
++
++pub fn read_to_string<P: AsRef<Path>>(path: P) -> io::Result<String> {
++    String::from_utf8(read(path)?).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
++}
++
++pub fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> io::Result<()> {
++    let key = key(path.as_ref());
++    let contents = contents.as_ref();
++    if let Some(node) = open_node(&key) {
++        let mut n = node.borrow_mut();
++        n.data = contents.to_vec();
++        n.mtime = now_millis();
++        n.dirty = true;
++        n.unlinked = false;
++        return n.save();
++    }
++    store(&key, contents, now_millis())
++}
++
++pub fn remove_file<P: AsRef<Path>>(path: P) -> io::Result<()> {
++    let key = key(path.as_ref());
++    let was_open = match open_node(&key) {
++        Some(node) => {
++            let mut n = node.borrow_mut();
++            let unsaved = n.dirty && !n.unlinked;
++            n.unlinked = true;
++            unsaved
++        }
++        None => false,
++    };
++    if unstore(&key)? || was_open {
++        Ok(())
++    } else {
++        Err(not_found(&key))
++    }
++}
++
++pub fn rename<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> io::Result<()> {
++    let from = key(from.as_ref());
++    let to = key(to.as_ref());
++    if from == to {
++        return Ok(());
++    }
++    settle(&from)?;
++    let stat = stored_stat(&from)?;
++    if stat.as_ref().is_some_and(|s| s.is_dir) {
++        return rename_dir(&from, &to);
++    }
++    let data = load(&from)?.ok_or_else(|| not_found(&from))?;
++    let mtime = stat.map(|s| s.mtime).unwrap_or_else(now_millis);
++    // whatever was open at the target is replaced
++    if let Some(node) = open_node(&to) {
++        node.borrow_mut().unlinked = true;
++    }
++    if !in_pool(&to) {
++        let _ = with_files(|db| db.execute("delete from entries where path = ?", [&to]));
++    }
++    store(&to, &data, mtime)?;
++    unstore(&from)?;
++    // handles open on the old name now refer to the new one
++    if let Some(node) = open_node(&from) {
++        node.borrow_mut().key = to.clone();
++        register_node(&node);
++        OPEN.with(|open| open.borrow_mut().remove(&from));
++    }
++    Ok(())
++}
++
++fn rename_dir(from: &str, to: &str) -> io::Result<()> {
++    with_files(|db| {
++        let prefix = format!("{from}/");
++        let rows: Vec<String> = db
++            .prepare("select path from entries where path = ? or substr(path, 1, ?) = ?")?
++            .query_map(params![from, prefix.len() as i64, prefix], |r| r.get(0))?
++            .collect::<rusqlite::Result<_>>()?;
++        for old in rows {
++            let new = format!("{to}{}", &old[from.len()..]);
++            db.execute(
++                "update entries set path = ?, parent = ? where path = ?",
++                params![new, parent_key(&new), old],
++            )?;
++        }
++        ensure_dirs(db, &parent_key(to), now_millis())
++    })
++}
++
++pub fn copy<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> io::Result<u64> {
++    let data = read(from)?;
++    write(to, &data)?;
++    Ok(data.len() as u64)
++}
++
++pub fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
++    let key = key(path.as_ref());
++    if exists(&key)? {
++        return Err(io::Error::new(io::ErrorKind::AlreadyExists, key));
++    }
++    create_dir_all(&key)
++}
++
++pub fn create_dir_all<P: AsRef<Path>>(path: P) -> io::Result<()> {
++    let key = key(path.as_ref());
++    with_files(|db| ensure_dirs(db, &key, now_millis()))
++}
++
++pub fn remove_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
++    let key = key(path.as_ref());
++    let children: i64 = with_files(|db| {
++        db.query_row(
++            "select count(*) from entries where parent = ?",
++            [&key],
++            |r| r.get(0),
++        )
++    })?;
++    if children > 0 {
++        return Err(io::Error::new(io::ErrorKind::DirectoryNotEmpty, key));
++    }
++    with_files(|db| db.execute("delete from entries where path = ? and is_dir = 1", [&key]))?;
++    Ok(())
++}
++
++pub fn remove_dir_all<P: AsRef<Path>>(path: P) -> io::Result<()> {
++    let key = key(path.as_ref());
++    let prefix = format!("{key}/");
++    with_files(|db| {
++        db.execute(
++            "delete from entries where path = ? or substr(path, 1, ?) = ?",
++            params![key, prefix.len() as i64, prefix],
++        )
++    })?;
++    Ok(())
++}
++
++pub fn canonicalize<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
++    Ok(PathBuf::from(key(path.as_ref())))
++}
++
++pub struct DirEntry {
++    key: String,
++    meta: Metadata,
++}
++
++impl DirEntry {
++    pub fn path(&self) -> PathBuf {
++        PathBuf::from(&self.key)
++    }
++    pub fn file_name(&self) -> std::ffi::OsString {
++        name_of(&self.key).into()
++    }
++    pub fn metadata(&self) -> io::Result<Metadata> {
++        Ok(self.meta.clone())
++    }
++    pub fn file_type(&self) -> io::Result<FileType> {
++        Ok(self.meta.file_type())
++    }
++}
++
++impl fmt::Debug for DirEntry {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        write!(f, "DirEntry({})", self.key)
++    }
++}
++
++pub struct ReadDir(std::vec::IntoIter<DirEntry>);
++
++impl Iterator for ReadDir {
++    type Item = io::Result<DirEntry>;
++
++    fn next(&mut self) -> Option<Self::Item> {
++        self.0.next().map(Ok)
++    }
++}
++
++pub fn read_dir<P: AsRef<Path>>(path: P) -> io::Result<ReadDir> {
++    let key = key(path.as_ref());
++    match metadata(&key) {
++        Ok(meta) if !meta.is_dir() => {
++            return Err(io::Error::new(io::ErrorKind::NotADirectory, key))
++        }
++        Err(e) => return Err(e),
++        _ => {}
++    }
++    // unsaved files show up too
++    OPEN.with(|open| {
++        for weak in open.borrow().values() {
++            if let Some(node) = weak.upgrade() {
++                let _ = node.borrow_mut().save();
++            }
++        }
++    });
++    let entries = with_files(|db| {
++        db.prepare(
++            "select path, is_dir, size, mtime from entries where parent = ? and path != '/'",
++        )?
++        .query_map([&key], |row| {
++            Ok(DirEntry {
++                key: row.get(0)?,
++                meta: Metadata {
++                    is_dir: row.get(1)?,
++                    len: row.get(2)?,
++                    mtime: row.get(3)?,
++                },
++            })
++        })?
++        .collect::<rusqlite::Result<Vec<_>>>()
++    })?;
++    Ok(ReadDir(entries.into_iter()))
++}
++
++// ---- tempfile's API -----------------------------------------------------------------------
++
++fn unique_name(dir: &str, prefix: &str) -> String {
++    let rand: u64 = rand::random();
++    let base = if dir == "/" { "" } else { dir };
++    format!("{base}/{prefix}{rand:016x}")
++}
++
++pub struct NamedTempFile {
++    path: Option<PathBuf>,
++    file: File,
++}
++
++impl fmt::Debug for NamedTempFile {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        write!(f, "NamedTempFile({:?})", self.path)
++    }
++}
++
++impl NamedTempFile {
++    pub fn new() -> io::Result<Self> {
++        Self::new_in(TEMP_DIR)
++    }
++
++    pub fn new_in<P: AsRef<Path>>(dir: P) -> io::Result<Self> {
++        let dir = key(dir.as_ref());
++        create_dir_all(&dir)?;
++        let path = PathBuf::from(unique_name(&dir, ".tmp"));
++        let file = File::create_new(&path)?;
++        Ok(Self {
++            path: Some(path),
++            file,
++        })
++    }
++
++    pub fn path(&self) -> &Path {
++        self.path.as_deref().unwrap()
++    }
++
++    pub fn as_file(&self) -> &File {
++        &self.file
++    }
++
++    pub fn as_file_mut(&mut self) -> &mut File {
++        &mut self.file
++    }
++
++    pub fn reopen(&self) -> io::Result<File> {
++        File::open(self.path())
++    }
++
++    pub fn persist<P: AsRef<Path>>(mut self, new_path: P) -> Result<File, PersistError> {
++        let path = self.path.take().unwrap();
++        match rename(&path, new_path.as_ref()) {
++            Ok(()) => {
++                let file = self.file.try_clone().expect("clone");
++                Ok(file)
++            }
++            Err(error) => {
++                self.path = Some(path);
++                Err(PersistError { error, file: self })
++            }
++        }
++    }
++
++    pub fn keep(mut self) -> Result<(File, PathBuf), PersistError> {
++        let path = self.path.take().unwrap();
++        Ok((self.file.try_clone().expect("clone"), path))
++    }
++
++    pub fn into_temp_path(mut self) -> TempPath {
++        TempPath {
++            path: self.path.take(),
++        }
++    }
++}
++
++impl Drop for NamedTempFile {
++    fn drop(&mut self) {
++        if let Some(path) = &self.path {
++            let _ = remove_file(path);
++        }
++    }
++}
++
++impl Read for NamedTempFile {
++    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
++        self.file.read(buf)
++    }
++}
++
++impl Write for NamedTempFile {
++    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
++        self.file.write(buf)
++    }
++    fn flush(&mut self) -> io::Result<()> {
++        self.file.flush()
++    }
++}
++
++impl Seek for NamedTempFile {
++    fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
++        self.file.seek(pos)
++    }
++}
++
++pub struct TempPath {
++    path: Option<PathBuf>,
++}
++
++impl std::ops::Deref for TempPath {
++    type Target = Path;
++    fn deref(&self) -> &Path {
++        self.path.as_deref().unwrap()
++    }
++}
++
++impl AsRef<Path> for TempPath {
++    fn as_ref(&self) -> &Path {
++        self
++    }
++}
++
++impl TempPath {
++    pub fn persist<P: AsRef<Path>>(mut self, new_path: P) -> Result<(), PathPersistError> {
++        let path = self.path.take().unwrap();
++        rename(&path, new_path.as_ref()).map_err(|error| PathPersistError {
++            error,
++            path: TempPath { path: Some(path) },
++        })
++    }
++}
++
++impl Drop for TempPath {
++    fn drop(&mut self) {
++        if let Some(path) = &self.path {
++            let _ = remove_file(path);
++        }
++    }
++}
++
++pub struct TempDir {
++    path: Option<PathBuf>,
++}
++
++impl TempDir {
++    pub fn new() -> io::Result<Self> {
++        let path = PathBuf::from(unique_name(TEMP_DIR, ".tmpdir"));
++        create_dir_all(&path)?;
++        Ok(Self { path: Some(path) })
++    }
++    pub fn path(&self) -> &Path {
++        self.path.as_deref().unwrap()
++    }
++}
++
++impl Drop for TempDir {
++    fn drop(&mut self) {
++        if let Some(path) = &self.path {
++            let _ = remove_dir_all(path);
++        }
++    }
++}
++
++pub fn tempdir() -> io::Result<TempDir> {
++    TempDir::new()
++}
++
++#[derive(Debug)]
++pub struct PersistError {
++    pub error: io::Error,
++    pub file: NamedTempFile,
++}
++
++impl fmt::Display for PersistError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        write!(f, "failed to persist temporary file: {}", self.error)
++    }
++}
++
++impl std::error::Error for PersistError {}
++
++pub struct PathPersistError {
++    pub error: io::Error,
++    pub path: TempPath,
++}
++
++impl fmt::Debug for PathPersistError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        write!(f, "PathPersistError({})", self.error)
++    }
++}
++
++impl fmt::Display for PathPersistError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        write!(f, "failed to persist temporary file path: {}", self.error)
++    }
++}
++
++impl std::error::Error for PathPersistError {}
+diff --git a/rslib/src/backend/mod.rs b/rslib/src/backend/mod.rs
+index b7f75c7..9695e0d 100644
+--- a/rslib/src/backend/mod.rs
++++ b/rslib/src/backend/mod.rs
+@@ -16,18 +16,23 @@ mod import_export;
+ mod media;
+ mod ops;
+ mod sync;
++#[cfg(target_arch = "wasm32")]
++mod sync_wasm;
+ 
+ use std::ops::Deref;
+ use std::result;
+ use std::sync::Arc;
+ use std::sync::Mutex;
++#[cfg(not(target_arch = "wasm32"))]
+ use std::sync::OnceLock;
+ use std::thread::JoinHandle;
+ 
+ use futures::future::AbortHandle;
+ use prost::Message;
+ use reqwest::Client;
++#[cfg(not(target_arch = "wasm32"))]
+ use tokio::runtime;
++#[cfg(not(target_arch = "wasm32"))]
+ use tokio::runtime::Runtime;
+ 
+ use crate::backend::dbproxy::db_command_bytes;
+@@ -55,10 +60,15 @@ pub struct BackendInner {
+     server: bool,
+     sync_abort: Mutex<Option<AbortHandle>>,
+     progress_state: Arc<Mutex<ProgressState>>,
++    #[cfg(not(target_arch = "wasm32"))]
+     runtime: OnceLock<Runtime>,
+     state: Mutex<BackendState>,
+     backup_task: Mutex<Option<JoinHandle<Result<()>>>>,
++    #[cfg(not(target_arch = "wasm32"))]
+     media_sync_task: Mutex<Option<JoinHandle<Result<()>>>>,
++    /// The browser's media sync runs as a local task; holds its result once done.
++    #[cfg(target_arch = "wasm32")]
++    media_sync_task: Mutex<Option<Arc<Mutex<Option<Result<()>>>>>>,
+     web_client: Mutex<Option<Client>>,
+ }
+ 
+@@ -90,6 +100,7 @@ impl Backend {
+                 want_abort: false,
+                 last_progress: None,
+             })),
++            #[cfg(not(target_arch = "wasm32"))]
+             runtime: OnceLock::new(),
+             state: Mutex::new(BackendState::default()),
+             backup_task: Mutex::new(None),
+@@ -127,6 +138,7 @@ impl Backend {
+         )
+     }
+ 
++    #[cfg(not(target_arch = "wasm32"))]
+     fn runtime_handle(&self) -> runtime::Handle {
+         self.runtime
+             .get_or_init(|| {
+@@ -140,6 +152,13 @@ impl Backend {
+             .clone()
+     }
+ 
++    /// Calls that need the network can't block in the browser: they fail here, and
++    /// the wasm crate offers async versions of the ones that matter (sync).
++    #[cfg(target_arch = "wasm32")]
++    fn runtime_handle(&self) -> NoBlockingRuntime {
++        NoBlockingRuntime
++    }
++
+     #[cfg(feature = "rustls")]
+     fn set_custom_certificate_inner(&self, cert_str: String) -> Result<()> {
+         use std::io::Cursor;
+@@ -177,9 +196,12 @@ impl Backend {
+         // currently limited to http1, as nginx doesn't support http2 proxies
+         let mut web_client = self.web_client.lock().unwrap();
+ 
+-        web_client
+-            .get_or_insert_with(|| Client::builder().http1_only().build().unwrap())
+-            .clone()
++        #[cfg(not(target_arch = "wasm32"))]
++        let new_client = || Client::builder().http1_only().build().unwrap();
++        // fetch picks the protocol
++        #[cfg(target_arch = "wasm32")]
++        let new_client = || Client::builder().build().unwrap();
++        web_client.get_or_insert_with(new_client).clone()
+     }
+ 
+     fn db_command(&self, input: &[u8]) -> Result<Vec<u8>> {
+@@ -195,3 +217,24 @@ impl Backend {
+         ThrottlingProgressHandler::new(self.progress_state.clone())
+     }
+ }
++
++#[cfg(target_arch = "wasm32")]
++pub(crate) struct NoBlockingRuntime;
++
++#[cfg(target_arch = "wasm32")]
++impl NoBlockingRuntime {
++    /// Runs `fut` if it finishes without waiting on anything; otherwise fails.
++    pub(crate) fn block_on<T>(
++        &self,
++        fut: impl std::future::Future<Output = Result<T>>,
++    ) -> Result<T> {
++        use std::task::Context;
++        use std::task::Poll;
++        let mut fut = std::pin::pin!(fut);
++        let mut cx = Context::from_waker(std::task::Waker::noop());
++        match fut.as_mut().poll(&mut cx) {
++            Poll::Ready(out) => out,
++            Poll::Pending => invalid_input!("not available in the browser"),
++        }
++    }
++}
+diff --git a/rslib/src/backend/sync.rs b/rslib/src/backend/sync.rs
+index 8e30def..c6140e8 100644
+--- a/rslib/src/backend/sync.rs
++++ b/rslib/src/backend/sync.rs
+@@ -5,26 +5,33 @@ use anki_proto::sync::sync_status_response::Required;
+ use anki_proto::sync::MediaSyncStatusResponse;
+ use anki_proto::sync::SyncStatusResponse;
+ use futures::future::AbortHandle;
++#[cfg(not(target_arch = "wasm32"))]
+ use futures::future::AbortRegistration;
++#[cfg(not(target_arch = "wasm32"))]
+ use futures::future::Abortable;
+ use reqwest::Url;
+ 
+ use super::Backend;
+ use crate::prelude::*;
++#[cfg(not(target_arch = "wasm32"))]
+ use crate::services::BackendCollectionService;
+ use crate::sync::collection::normal::ClientSyncState;
+ use crate::sync::collection::normal::SyncActionRequired;
+ use crate::sync::collection::normal::SyncOutput;
++#[cfg(not(target_arch = "wasm32"))]
+ use crate::sync::collection::progress::sync_abort;
++#[cfg(not(target_arch = "wasm32"))]
+ use crate::sync::collection::status::online_sync_status_check;
++#[cfg(not(target_arch = "wasm32"))]
+ use crate::sync::http_client::HttpSyncClient;
++#[cfg(not(target_arch = "wasm32"))]
+ use crate::sync::login::sync_login;
+ use crate::sync::login::SyncAuth;
+ 
+ #[derive(Default)]
+ pub(super) struct SyncState {
+-    remote_sync_status: RemoteSyncStatus,
+-    media_sync_abort: Option<AbortHandle>,
++    pub(super) remote_sync_status: RemoteSyncStatus,
++    pub(super) media_sync_abort: Option<AbortHandle>,
+ }
+ 
+ #[derive(Default, Debug)]
+@@ -166,6 +173,7 @@ impl crate::services::BackendSyncService for Backend {
+     }
+ }
+ 
++#[cfg(not(target_arch = "wasm32"))]
+ impl Backend {
+     /// Return a handle for regular (non-media) syncing.
+     #[allow(clippy::type_complexity)]
+@@ -457,7 +465,7 @@ impl Backend {
+     }
+ }
+ 
+-fn status_response_from_required(required: Required) -> SyncStatusResponse {
++pub(super) fn status_response_from_required(required: Required) -> SyncStatusResponse {
+     SyncStatusResponse {
+         required: required.into(),
+         new_endpoint: None,
+diff --git a/rslib/src/backend/sync_wasm.rs b/rslib/src/backend/sync_wasm.rs
+new file mode 100644
+index 0000000..6540f3d
+--- /dev/null
++++ b/rslib/src/backend/sync_wasm.rs
+@@ -0,0 +1,324 @@
++// Copyright: Ankitects Pty Ltd and contributors
++// License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
++
++//! Syncing in the browser. sync.rs blocks a thread on each network call; here
++//! the same steps are async functions the wasm crate awaits, and media syncs as
++//! a local task. The blocking entry points of the sync service fail, pointing to
++//! these.
++
++use std::sync::Arc;
++use std::sync::Mutex;
++
++use anki_proto::sync::sync_status_response::Required;
++use anki_proto::sync::MediaSyncStatusResponse;
++use futures::future::AbortHandle;
++use futures::future::AbortRegistration;
++use futures::future::Abortable;
++
++use super::sync::status_response_from_required;
++use super::Backend;
++use crate::prelude::*;
++use crate::services::BackendCollectionService;
++use crate::sync::collection::normal::SyncActionRequired;
++use crate::sync::collection::normal::SyncOutput;
++use crate::sync::collection::progress::sync_abort;
++use crate::sync::collection::status::online_sync_status_check;
++use crate::sync::http_client::HttpSyncClient;
++use crate::sync::login::sync_login;
++use crate::sync::login::SyncAuth;
++
++fn needs_async<T>() -> Result<T> {
++    invalid_input!("in the browser, sync calls go through the async API")
++}
++
++impl Backend {
++    fn sync_abort_handle(
++        &self,
++    ) -> (
++        scopeguard::ScopeGuard<Backend, impl FnOnce(Backend)>,
++        AbortRegistration,
++    ) {
++        let (abort_handle, abort_reg) = AbortHandle::new_pair();
++        self.sync_abort.lock().unwrap().replace(abort_handle);
++        let guard = scopeguard::guard(self.clone(), |backend| {
++            backend.sync_abort.lock().unwrap().take();
++        });
++        (guard, abort_reg)
++    }
++
++    pub(super) fn sync_media_in_background(
++        &self,
++        auth: SyncAuth,
++        server_usn: Option<Usn>,
++    ) -> Result<()> {
++        let mut task = self.media_sync_task.lock().unwrap();
++        if let Some(slot) = &*task {
++            if slot.lock().unwrap().is_none() {
++                // already running
++                return Ok(());
++            }
++        }
++        let (abort_handle, abort_reg) = AbortHandle::new_pair();
++        self.state.lock().unwrap().sync.media_sync_abort = Some(abort_handle);
++        let slot = Arc::new(Mutex::new(None));
++        *task = Some(slot.clone());
++        drop(task);
++        let backend = self.clone();
++        wasm_bindgen_futures::spawn_local(async move {
++            let result = backend.sync_media_async(auth, server_usn, abort_reg).await;
++            *slot.lock().unwrap() = Some(result);
++        });
++        Ok(())
++    }
++
++    async fn sync_media_async(
++        &self,
++        auth: SyncAuth,
++        server_usn: Option<Usn>,
++        abort_reg: AbortRegistration,
++    ) -> Result<()> {
++        let _clear_abort_handle = scopeguard::guard(self.clone(), |backend| {
++            backend.state.lock().unwrap().sync.media_sync_abort.take();
++        });
++        let (mgr, progress) = {
++            let mut col = self.col.lock().unwrap();
++            let col = col.as_mut().ok_or(AnkiError::CollectionNotOpen)?;
++            (col.media()?, col.new_progress_handler())
++        };
++        let sync_fut = mgr.sync_media(progress, auth, self.web_client(), server_usn);
++        match Abortable::new(sync_fut, abort_reg).await {
++            Ok(sync_result) => sync_result,
++            Err(_) => Err(AnkiError::Interrupted),
++        }
++    }
++
++    /// True if active. Will throw if terminated with error.
++    pub(super) fn get_media_sync_status(&self) -> Result<MediaSyncStatusResponse> {
++        let mut task = self.media_sync_task.lock().unwrap();
++        let active = match &*task {
++            Some(slot) => {
++                let finished = slot.lock().unwrap().take();
++                match finished {
++                    None => true,
++                    Some(result) => {
++                        task.take();
++                        result?;
++                        false
++                    }
++                }
++            }
++            None => false,
++        };
++        drop(task);
++        let progress = self.latest_progress()?;
++        let progress = if let Some(anki_proto::collection::progress::Value::MediaSync(progress)) =
++            progress.value
++        {
++            Some(progress)
++        } else {
++            None
++        };
++        Ok(MediaSyncStatusResponse { active, progress })
++    }
++
++    /// The browser can't wait here: this asks the media sync to stop, and it
++    /// stops the next time it gets to run.
++    pub(super) fn abort_media_sync_and_wait(&self) {
++        let guard = self.state.lock().unwrap();
++        if let Some(handle) = &guard.sync.media_sync_abort {
++            handle.abort();
++            self.progress_state.lock().unwrap().want_abort = true;
++        }
++    }
++
++    pub(super) fn sync_login_inner(
++        &self,
++        _input: anki_proto::sync::SyncLoginRequest,
++    ) -> Result<anki_proto::sync::SyncAuth> {
++        needs_async()
++    }
++
++    pub(super) fn sync_status_inner(
++        &self,
++        input: anki_proto::sync::SyncAuth,
++    ) -> Result<anki_proto::sync::SyncStatusResponse> {
++        match self.sync_status_without_network(&input)? {
++            Some(status) => Ok(status),
++            None => needs_async(),
++        }
++    }
++
++    pub(super) fn sync_collection_inner(
++        &self,
++        _input: anki_proto::sync::SyncCollectionRequest,
++    ) -> Result<anki_proto::sync::SyncCollectionResponse> {
++        needs_async()
++    }
++
++    pub(super) fn full_sync_inner(
++        &self,
++        _input: anki_proto::sync::SyncAuth,
++        _server_usn: Option<Usn>,
++        _upload: bool,
++    ) -> Result<()> {
++        needs_async()
++    }
++
++    /// The status if it can be told without asking the server.
++    fn sync_status_without_network(
++        &self,
++        _input: &anki_proto::sync::SyncAuth,
++    ) -> Result<Option<anki_proto::sync::SyncStatusResponse>> {
++        let req = self.with_col(|col| col.sync_status_offline())?;
++        if req != Required::NoChanges {
++            return Ok(Some(status_response_from_required(req)));
++        }
++        let guard = self.state.lock().unwrap();
++        if guard.sync.remote_sync_status.last_check.elapsed_secs() < 300 {
++            return Ok(Some(status_response_from_required(
++                guard.sync.remote_sync_status.last_response,
++            )));
++        }
++        Ok(None)
++    }
++
++    // ---- what the wasm crate awaits -----------------------------------------------
++
++    pub async fn sync_login_async(
++        &self,
++        input: anki_proto::sync::SyncLoginRequest,
++    ) -> Result<anki_proto::sync::SyncAuth> {
++        let (_guard, abort_reg) = self.sync_abort_handle();
++        let sync_fut = sync_login(
++            input.username,
++            input.password,
++            input.endpoint.clone(),
++            self.web_client(),
++        );
++        let ret = match Abortable::new(sync_fut, abort_reg).await {
++            Ok(sync_result) => sync_result,
++            Err(_) => Err(AnkiError::Interrupted),
++        };
++        ret.map(|a| anki_proto::sync::SyncAuth {
++            hkey: a.hkey,
++            endpoint: input.endpoint,
++            io_timeout_secs: None,
++        })
++    }
++
++    pub async fn sync_status_async(
++        &self,
++        input: anki_proto::sync::SyncAuth,
++    ) -> Result<anki_proto::sync::SyncStatusResponse> {
++        if let Some(status) = self.sync_status_without_network(&input)? {
++            return Ok(status);
++        }
++        let auth: SyncAuth = input.try_into()?;
++        let time_at_check_begin = TimestampSecs::now();
++        let local = self.with_col(|col| col.sync_meta())?;
++        let mut client = HttpSyncClient::new(auth, self.web_client());
++        let state = online_sync_status_check(local, &mut client).await?;
++        {
++            let mut guard = self.state.lock().unwrap();
++            if guard.sync.remote_sync_status.last_check < time_at_check_begin {
++                guard.sync.remote_sync_status.last_check = time_at_check_begin;
++                guard.sync.remote_sync_status.last_response = state.required.into();
++            }
++        }
++        Ok(state.into())
++    }
++
++    /// Holds the collection for the whole sync: the caller must not make other
++    /// collection calls until it finishes.
++    pub async fn sync_collection_async(
++        &self,
++        input: anki_proto::sync::SyncCollectionRequest,
++    ) -> Result<anki_proto::sync::SyncCollectionResponse> {
++        let auth: SyncAuth = input.auth.or_invalid("missing auth")?.try_into()?;
++        let (_guard, abort_reg) = self.sync_abort_handle();
++        let client = self.web_client();
++        let auth2 = auth.clone();
++
++        let ret = {
++            let mut guard = self.col.lock().unwrap();
++            let col = guard.as_mut().ok_or(AnkiError::CollectionNotOpen)?;
++            let sync_fut = col.normal_sync(auth.clone(), client.clone());
++            match Abortable::new(sync_fut, abort_reg).await {
++                Ok(sync_result) => sync_result,
++                Err(_) => {
++                    // if the user aborted, we'll need to clean up the transaction
++                    col.storage.rollback_trx()?;
++                    // and tell the server to clean up
++                    wasm_bindgen_futures::spawn_local(async move {
++                        let _ = sync_abort(auth, client).await;
++                    });
++                    Err(AnkiError::Interrupted)
++                }
++            }
++        };
++
++        let output: SyncOutput = ret?;
++
++        if input.sync_media
++            && !matches!(output.required, SyncActionRequired::FullSyncRequired { .. })
++        {
++            self.sync_media_in_background(auth2, Some(output.server_media_usn))?;
++        }
++
++        self.state
++            .lock()
++            .unwrap()
++            .sync
++            .remote_sync_status
++            .update(output.required.into());
++        Ok(output.into())
++    }
++
++    pub async fn full_upload_or_download_async(
++        &self,
++        input: anki_proto::sync::FullUploadOrDownloadRequest,
++    ) -> Result<()> {
++        let auth: SyncAuth = input.auth.or_invalid("missing auth")?.try_into()?;
++        let server_usn = input.server_usn.map(Usn);
++        let auth2 = auth.clone();
++        self.abort_media_sync_and_wait();
++
++        let mut col = self.col.lock().unwrap();
++        let col_inner = col.take().ok_or(AnkiError::CollectionNotOpen)?;
++        let (_guard, abort_reg) = self.sync_abort_handle();
++        let mut builder = col_inner.as_builder();
++
++        let result = if input.upload {
++            let sync_fut = col_inner.full_upload(auth, self.web_client());
++            Abortable::new(sync_fut, abort_reg).await
++        } else {
++            let sync_fut = col_inner.full_download(auth, self.web_client());
++            Abortable::new(sync_fut, abort_reg).await
++        };
++
++        // ensure re-opened regardless of outcome
++        col.replace(builder.build()?);
++        drop(col);
++
++        let result = match result {
++            Ok(sync_result) => {
++                if sync_result.is_ok() {
++                    self.state
++                        .lock()
++                        .unwrap()
++                        .sync
++                        .remote_sync_status
++                        .update(Required::NoChanges);
++                }
++                sync_result
++            }
++            Err(_) => Err(AnkiError::Interrupted),
++        };
++
++        if result.is_ok() && server_usn.is_some() {
++            self.sync_media_in_background(auth2, server_usn)?;
++        }
++
++        result
++    }
++}
+diff --git a/rslib/src/card_rendering/tts/windows.rs b/rslib/src/card_rendering/tts/windows.rs
+index 5afb5cc..771a79e 100644
+--- a/rslib/src/card_rendering/tts/windows.rs
++++ b/rslib/src/card_rendering/tts/windows.rs
+@@ -1,7 +1,7 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
+-use std::fs::File;
++use anki_io::fs::File;
+ use std::io::Write;
+ 
+ use anki_proto::card_rendering::all_tts_voices_response::TtsVoice;
+diff --git a/rslib/src/collection/backup.rs b/rslib/src/collection/backup.rs
+index a2e6bcc..305275c 100644
+--- a/rslib/src/collection/backup.rs
++++ b/rslib/src/collection/backup.rs
+@@ -1,14 +1,15 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
++use anki_io::fs::read_dir;
++use anki_io::fs::remove_file;
++use anki_io::fs::DirEntry;
+ use std::ffi::OsStr;
+-use std::fs::read_dir;
+-use std::fs::remove_file;
+-use std::fs::DirEntry;
+ use std::path::Path;
+ use std::path::PathBuf;
+ use std::thread;
+ use std::thread::JoinHandle;
++#[cfg(not(target_arch = "wasm32"))]
+ use std::time::SystemTime;
+ 
+ use anki_io::read_locked_db_file;
+@@ -30,6 +31,10 @@ impl Collection {
+         backup_folder: impl AsRef<Path> + Send + 'static,
+         force: bool,
+     ) -> Result<Option<JoinHandle<Result<()>>>> {
++        // No backup threads in the browser; the sync server holds the collection.
++        if cfg!(target_arch = "wasm32") {
++            return Ok(None);
++        }
+         if !self.changed_since_last_backup()? {
+             return Ok(None);
+         }
+@@ -62,7 +67,7 @@ fn should_skip_backup(
+ 
+ fn has_recent_backup(backup_folder: &Path, recent_mins: u32) -> Result<bool> {
+     let recent_secs = (recent_mins * 60) as u64;
+-    let now = SystemTime::now();
++    let now = anki_io::now();
+     Ok(read_dir(backup_folder)?
+         .filter_map(|res| res.ok())
+         .filter_map(|entry| entry.metadata().ok())
+diff --git a/rslib/src/editor.rs b/rslib/src/editor.rs
+index 4503a28..71ab354 100644
+--- a/rslib/src/editor.rs
++++ b/rslib/src/editor.rs
+@@ -2,12 +2,14 @@
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
+ use std::path::Path;
++#[cfg(not(target_arch = "wasm32"))]
+ use std::time::Duration;
+ 
+ use percent_encoding_iri::percent_decode_str;
+ use reqwest::Client;
+ use reqwest::Url;
+ 
++#[cfg(not(target_arch = "wasm32"))]
+ use crate::error::AnkiError;
+ use crate::error::Result;
+ use crate::invalid_input;
+@@ -49,6 +51,12 @@ pub async fn retrieve_url(url: &str) -> Result<(String, Vec<u8>)> {
+     Ok((filename.to_string(), file_contents))
+ }
+ 
++#[cfg(target_arch = "wasm32")]
++async fn download_local_file(_url: &str) -> Result<(Vec<u8>, Option<String>)> {
++    invalid_input!("local files can't be read in the browser")
++}
++
++#[cfg(not(target_arch = "wasm32"))]
+ async fn download_local_file(url: &str) -> Result<(Vec<u8>, Option<String>)> {
+     let decoded_url = match percent_decode_str(url).decode_utf8() {
+         Ok(url) => url,
+@@ -65,7 +73,7 @@ async fn download_local_file(url: &str) -> Result<(Vec<u8>, Option<String>)> {
+         Err(_) => invalid_input!("Invalid file path in URL"),
+     };
+ 
+-    let file_contents = std::fs::read(&file_path).map_err(|e| AnkiError::FileIoError {
++    let file_contents = anki_io::fs::read(&file_path).map_err(|e| AnkiError::FileIoError {
+         source: anki_io::FileIoError {
+             path: file_path.clone(),
+             op: anki_io::FileOp::Read,
+@@ -77,8 +85,10 @@ async fn download_local_file(url: &str) -> Result<(Vec<u8>, Option<String>)> {
+ }
+ 
+ async fn download_remote_file(url: &str) -> Result<(Vec<u8>, Option<String>)> {
+-    let client = Client::builder()
+-        .timeout(Duration::from_secs(30))
++    let client = Client::builder();
++    #[cfg(not(target_arch = "wasm32"))]
++    let client = client.timeout(Duration::from_secs(30));
++    let client = client
+         .user_agent("Mozilla/5.0 (compatible; Anki)")
+         .build()?;
+ 
+diff --git a/rslib/src/error/mod.rs b/rslib/src/error/mod.rs
+index cdc3f4b..86fccc4 100644
+--- a/rslib/src/error/mod.rs
++++ b/rslib/src/error/mod.rs
+@@ -276,14 +276,14 @@ impl From<prost::DecodeError> for AnkiError {
+     }
+ }
+ 
+-impl From<tempfile::PathPersistError> for AnkiError {
+-    fn from(e: tempfile::PathPersistError) -> Self {
++impl From<anki_io::tempfile::PathPersistError> for AnkiError {
++    fn from(e: anki_io::tempfile::PathPersistError) -> Self {
+         FileIoError::from(e).into()
+     }
+ }
+ 
+-impl From<tempfile::PersistError> for AnkiError {
+-    fn from(e: tempfile::PersistError) -> Self {
++impl From<anki_io::tempfile::PersistError> for AnkiError {
++    fn from(e: anki_io::tempfile::PersistError) -> Self {
+         FileIoError::from(e).into()
+     }
+ }
+diff --git a/rslib/src/image_occlusion/imagedata.rs b/rslib/src/image_occlusion/imagedata.rs
+index 770144b..2f8e246 100644
+--- a/rslib/src/image_occlusion/imagedata.rs
++++ b/rslib/src/image_occlusion/imagedata.rs
+@@ -163,7 +163,7 @@ impl Collection {
+         let file_path = Path::new(&path);
+         let supported_extensions = ["jpg", "jpeg", "png", "gif", "svg", "webp", "ico", "avif"];
+ 
+-        if file_path.exists() {
++        if anki_io::exists(file_path) {
+             let meta = metadata(file_path)?;
+             if meta.is_file() {
+                 if let Some(ext_osstr) = file_path.extension() {
+diff --git a/rslib/src/import_export/package/apkg/import/media.rs b/rslib/src/import_export/package/apkg/import/media.rs
+index 20543e0..478ddba 100644
+--- a/rslib/src/import_export/package/apkg/import/media.rs
++++ b/rslib/src/import_export/package/apkg/import/media.rs
+@@ -1,8 +1,8 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
++use anki_io::fs::File;
+ use std::collections::HashMap;
+-use std::fs::File;
+ use std::mem;
+ 
+ use anki_io::FileIoSnafu;
+diff --git a/rslib/src/import_export/package/apkg/import/mod.rs b/rslib/src/import_export/package/apkg/import/mod.rs
+index 9c8e707..73d7e87 100644
+--- a/rslib/src/import_export/package/apkg/import/mod.rs
++++ b/rslib/src/import_export/package/apkg/import/mod.rs
+@@ -6,16 +6,16 @@ mod decks;
+ mod media;
+ mod notes;
+ 
+-use std::fs::File;
++use anki_io::fs::File;
+ use std::path::Path;
+ 
+ use anki_io::new_tempfile;
+ use anki_io::open_file;
++use anki_io::tempfile::NamedTempFile;
+ use anki_io::FileIoSnafu;
+ use anki_io::FileOp;
+ pub(crate) use notes::NoteMeta;
+ use rusqlite::OptionalExtension;
+-use tempfile::NamedTempFile;
+ use zip::ZipArchive;
+ 
+ use super::super::meta::MetaExt;
+diff --git a/rslib/src/import_export/package/apkg/import/notes.rs b/rslib/src/import_export/package/apkg/import/notes.rs
+index d4464c0..a758584 100644
+--- a/rslib/src/import_export/package/apkg/import/notes.rs
++++ b/rslib/src/import_export/package/apkg/import/notes.rs
+@@ -618,9 +618,9 @@ impl Notetype {
+ 
+ #[cfg(test)]
+ mod test {
++    use anki_io::tempfile::TempDir;
+     use anki_proto::import_export::ExportAnkiPackageOptions;
+     use anki_proto::import_export::ImportAnkiPackageOptions;
+-    use tempfile::TempDir;
+ 
+     use super::*;
+     use crate::collection::CollectionBuilder;
+diff --git a/rslib/src/import_export/package/apkg/tests.rs b/rslib/src/import_export/package/apkg/tests.rs
+index 68f982b..01347ba 100644
+--- a/rslib/src/import_export/package/apkg/tests.rs
++++ b/rslib/src/import_export/package/apkg/tests.rs
+@@ -3,8 +3,8 @@
+ 
+ #![cfg(test)]
+ 
++use anki_io::fs::File;
+ use std::collections::HashSet;
+-use std::fs::File;
+ use std::io::Write;
+ 
+ use anki_io::read_file;
+diff --git a/rslib/src/import_export/package/colpkg/export.rs b/rslib/src/import_export/package/colpkg/export.rs
+index 20f25a1..7ef03f8 100644
+--- a/rslib/src/import_export/package/colpkg/export.rs
++++ b/rslib/src/import_export/package/colpkg/export.rs
+@@ -1,8 +1,8 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
++use anki_io::fs::File;
+ use std::collections::HashMap;
+-use std::fs::File;
+ use std::io;
+ use std::io::Read;
+ use std::io::Write;
+@@ -13,8 +13,8 @@ use anki_io::atomic_rename;
+ use anki_io::new_tempfile;
+ use anki_io::new_tempfile_in_parent_of;
+ use anki_io::open_file;
++use anki_io::tempfile::NamedTempFile;
+ use prost::Message;
+-use tempfile::NamedTempFile;
+ use zip::write::FileOptions;
+ use zip::CompressionMethod;
+ use zip::ZipWriter;
+@@ -40,6 +40,7 @@ use crate::storage::SchemaVersion;
+ /// Enable multithreaded compression if over this size. For smaller files,
+ /// multithreading makes things slower, and in initial tests, the crossover
+ /// point was somewhere between 1MB and 10MB on a many-core system.
++#[cfg(not(target_arch = "wasm32"))]
+ const MULTITHREAD_MIN_BYTES: usize = 10 * 1024 * 1024;
+ 
+ impl Collection {
+@@ -188,7 +189,12 @@ fn create_dummy_collection_file(tr: &I18n) -> Result<NamedTempFile> {
+     dummy_col
+         .storage
+         .db
+-        .execute_batch("pragma page_size=512; pragma journal_mode=delete; vacuum;")?;
++        .execute_batch(&if anki_io::sqlite_journal_mode("delete") == "memory" {
++            // the browser's IndexedDB store keeps a database's page size
++            "vacuum;".to_string()
++        } else {
++            "pragma page_size=512; pragma journal_mode=delete; vacuum;".to_string()
++        })?;
+     dummy_col.close(Some(SchemaVersion::V11))?;
+ 
+     Ok(tempfile)
+@@ -207,9 +213,12 @@ impl Collection {
+ /// Copy contents of reader into writer, compressing as we copy.
+ fn zstd_copy(reader: &mut impl Read, writer: &mut impl Write, size: usize) -> Result<()> {
+     let mut encoder = Encoder::new(writer, 0)?;
++    #[cfg(not(target_arch = "wasm32"))]
+     if size > MULTITHREAD_MIN_BYTES {
+         encoder.multithread(num_cpus::get() as u32)?;
+     }
++    #[cfg(target_arch = "wasm32")]
++    let _ = size;
+     io::copy(reader, &mut encoder)?;
+     encoder.finish()?;
+     Ok(())
+diff --git a/rslib/src/import_export/package/colpkg/import.rs b/rslib/src/import_export/package/colpkg/import.rs
+index 5ae8b4c..49261d3 100644
+--- a/rslib/src/import_export/package/colpkg/import.rs
++++ b/rslib/src/import_export/package/colpkg/import.rs
+@@ -1,7 +1,7 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
+-use std::fs::File;
++use anki_io::fs::File;
+ use std::io;
+ use std::io::Write;
+ use std::path::Path;
+diff --git a/rslib/src/import_export/package/colpkg/tests.rs b/rslib/src/import_export/package/colpkg/tests.rs
+index ccfe9ad..57f0ca0 100644
+--- a/rslib/src/import_export/package/colpkg/tests.rs
++++ b/rslib/src/import_export/package/colpkg/tests.rs
+@@ -7,7 +7,7 @@ use std::path::Path;
+ 
+ use anki_io::create_dir_all;
+ use anki_io::read_file;
+-use tempfile::tempdir;
++use anki_io::tempfile::tempdir;
+ 
+ use crate::collection::CollectionBuilder;
+ use crate::import_export::package::import_colpkg;
+diff --git a/rslib/src/import_export/package/media.rs b/rslib/src/import_export/package/media.rs
+index 8a7e5b7..0305d1f 100644
+--- a/rslib/src/import_export/package/media.rs
++++ b/rslib/src/import_export/package/media.rs
+@@ -1,11 +1,11 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
++use anki_io::fs;
++use anki_io::fs::File;
+ use std::borrow::Cow;
+ use std::collections::HashMap;
+ use std::ffi::OsString;
+-use std::fs;
+-use std::fs::File;
+ use std::io;
+ use std::io::Read;
+ use std::io::Write;
+@@ -286,7 +286,7 @@ impl MediaIter {
+         Self::new(
+             list.into_iter()
+                 .map(move |file| folder.join(file))
+-                .filter(|path| path.exists())
++                .filter(|path| anki_io::exists(path))
+                 .map(|path| MediaIterEntry::try_from(path.as_path())),
+         )
+     }
+diff --git a/rslib/src/import_export/package/meta.rs b/rslib/src/import_export/package/meta.rs
+index 1b87974..a61be2d 100644
+--- a/rslib/src/import_export/package/meta.rs
++++ b/rslib/src/import_export/package/meta.rs
+@@ -1,7 +1,7 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
+-use std::fs::File;
++use anki_io::fs::File;
+ use std::io;
+ use std::io::Read;
+ 
+diff --git a/rslib/src/import_export/service.rs b/rslib/src/import_export/service.rs
+index 7754d5d..94e4280 100644
+--- a/rslib/src/import_export/service.rs
++++ b/rslib/src/import_export/service.rs
+@@ -124,6 +124,8 @@ impl From<ExportLimit> for SearchNode {
+ 
+ #[cfg(test)]
+ mod tests {
++    use anki_io::tempfile::tempdir;
++    use anki_io::tempfile::NamedTempFile;
+     use anki_proto::generic;
+     use anki_proto::import_export::export_limit::Limit;
+     use anki_proto::import_export::import_response::Log as NoteLog;
+@@ -134,8 +136,6 @@ mod tests {
+     use anki_proto::import_export::ExportNoteCsvRequest;
+     use anki_proto::import_export::ImportAnkiPackageRequest;
+     use anki_proto::import_export::ImportCsvRequest;
+-    use tempfile::tempdir;
+-    use tempfile::NamedTempFile;
+ 
+     use super::*;
+     use crate::ops::Op;
+@@ -350,7 +350,7 @@ mod tests {
+         // tab-separated: two fields matching Basic notetype (Front, Back)
+         // dir and the CSV inside are deleted automatically when dir drops at end of
+         // test
+-        std::fs::write(&path, "front content\tback content\n").unwrap();
++        anki_io::fs::write(&path, "front content\tback content\n").unwrap();
+ 
+         let metadata = ImportExportService::get_csv_metadata(
+             &mut col,
+@@ -400,7 +400,7 @@ mod tests {
+         let path = dir.path().join("notes.json");
+         // ForeignData has #[serde(default)] — empty notes list is valid JSON
+         // dir and the file are deleted automatically when dir drops at end of test
+-        std::fs::write(&path, r#"{"notes": []}"#).unwrap();
++        anki_io::fs::write(&path, r#"{"notes": []}"#).unwrap();
+         let result = ImportExportService::import_json_file(
+             &mut col,
+             generic::String {
+diff --git a/rslib/src/import_export/text/csv/export.rs b/rslib/src/import_export/text/csv/export.rs
+index 5cb902b..8893534 100644
+--- a/rslib/src/import_export/text/csv/export.rs
++++ b/rslib/src/import_export/text/csv/export.rs
+@@ -1,9 +1,9 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
++use anki_io::fs::File;
+ use std::borrow::Cow;
+ use std::collections::HashMap;
+-use std::fs::File;
+ use std::io::Write;
+ use std::sync::Arc;
+ use std::sync::LazyLock;
+@@ -294,12 +294,12 @@ impl From<&mut ExportNoteCsvRequest> for SearchNode {
+ 
+ #[cfg(test)]
+ mod tests {
++    use anki_io::tempfile::tempdir;
++    use anki_io::tempfile::NamedTempFile;
++    use anki_io::tempfile::TempDir;
+     use anki_proto::import_export::export_limit::Limit;
+     use anki_proto::import_export::ExportLimit;
+     use anki_proto::import_export::ExportNoteCsvRequest;
+-    use tempfile::tempdir;
+-    use tempfile::NamedTempFile;
+-    use tempfile::TempDir;
+ 
+     use super::*;
+     use crate::tests::DeckAdder;
+@@ -328,7 +328,7 @@ mod tests {
+         let path = dir.path().join("cards.csv");
+         col.export_card_csv(path.to_str().unwrap(), SearchNode::WholeCollection, true)
+             .unwrap();
+-        let content = std::fs::read_to_string(&path).unwrap();
++        let content = anki_io::fs::read_to_string(&path).unwrap();
+         assert!(
+             content.starts_with("#separator:tab\n#html:true\n"),
+             "expected CSV header, got: {content}"
+@@ -342,7 +342,7 @@ mod tests {
+         let path = dir.path().join("cards.csv");
+         col.export_card_csv(path.to_str().unwrap(), SearchNode::WholeCollection, false)
+             .unwrap();
+-        let content = std::fs::read_to_string(&path).unwrap();
++        let content = anki_io::fs::read_to_string(&path).unwrap();
+         assert!(
+             content.starts_with("#separator:tab\n#html:false\n"),
+             "expected CSV header, got: {content}"
+@@ -357,7 +357,7 @@ mod tests {
+             .export_card_csv(path.to_str().unwrap(), SearchNode::WholeCollection, true)
+             .unwrap();
+         assert_eq!(count, 0, "expected 0 cards exported");
+-        let content = std::fs::read_to_string(&path).unwrap();
++        let content = anki_io::fs::read_to_string(&path).unwrap();
+         assert!(
+             content.starts_with("#separator:tab\n#html:true\n"),
+             "expected header even with empty collection, got: {content}"
+@@ -448,7 +448,7 @@ mod tests {
+         let path = dir.path().join("cards.csv");
+         col.export_card_csv(path.to_str().unwrap(), SearchNode::WholeCollection, true)
+             .unwrap();
+-        let content = std::fs::read_to_string(&path).unwrap();
++        let content = anki_io::fs::read_to_string(&path).unwrap();
+         assert!(
+             content.contains("<b>bold front</b>"),
+             "expected HTML preserved in CSV, got: {content}"
+@@ -464,7 +464,7 @@ mod tests {
+         let path = dir.path().join("cards.csv");
+         col.export_card_csv(path.to_str().unwrap(), SearchNode::WholeCollection, false)
+             .unwrap();
+-        let content = std::fs::read_to_string(&path).unwrap();
++        let content = anki_io::fs::read_to_string(&path).unwrap();
+         assert!(
+             content.contains("bold front"),
+             "expected stripped text in CSV, got: {content}"
+@@ -541,7 +541,7 @@ mod tests {
+         let path = dir.path().join("notes.csv");
+         col.export_note_csv(note_csv_request(path.to_str().unwrap().into()))
+             .unwrap();
+-        let content = std::fs::read_to_string(&path).unwrap();
++        let content = anki_io::fs::read_to_string(&path).unwrap();
+         assert!(
+             content.contains("#guid column:1\n"),
+             "wrong guid column index"
+@@ -575,7 +575,7 @@ mod tests {
+             limit: None,
+         })
+         .unwrap();
+-        let content = std::fs::read_to_string(&path).unwrap();
++        let content = anki_io::fs::read_to_string(&path).unwrap();
+         assert!(
+             !content.contains("#guid column:"),
+             "guid column header should be absent"
+@@ -636,7 +636,7 @@ mod tests {
+             limit: None,
+         })
+         .unwrap();
+-        let content = std::fs::read_to_string(&path).unwrap();
++        let content = anki_io::fs::read_to_string(&path).unwrap();
+         assert!(
+             !content.contains(&note.guid),
+             "guid should be absent when with_guid is false, got: {content}"
+@@ -654,7 +654,7 @@ mod tests {
+         let path = dir.path().join("notes.csv");
+         col.export_note_csv(note_csv_request(path.to_str().unwrap().into()))
+             .unwrap();
+-        let content = std::fs::read_to_string(&path).unwrap();
++        let content = anki_io::fs::read_to_string(&path).unwrap();
+         assert!(
+             content.contains("<i>italic</i>"),
+             "expected HTML preserved in note CSV, got: {content}"
+@@ -678,7 +678,7 @@ mod tests {
+             limit: None,
+         })
+         .unwrap();
+-        let content = std::fs::read_to_string(&path).unwrap();
++        let content = anki_io::fs::read_to_string(&path).unwrap();
+         assert!(
+             content.contains("bold text"),
+             "expected stripped text in CSV, got: {content}"
+diff --git a/rslib/src/lib.rs b/rslib/src/lib.rs
+index 2d6484a..22bb2e5 100644
+--- a/rslib/src/lib.rs
++++ b/rslib/src/lib.rs
+@@ -52,6 +52,8 @@ pub mod types;
+ pub mod undo;
+ mod updates;
+ pub mod version;
++#[cfg(target_arch = "wasm32")]
++pub mod wasm;
+ 
+ use std::env;
+ use std::sync::LazyLock;
+diff --git a/rslib/src/log.rs b/rslib/src/log.rs
+index fedc597..4d1c095 100644
+--- a/rslib/src/log.rs
++++ b/rslib/src/log.rs
+@@ -1,13 +1,18 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
+-use std::fs;
+-use std::fs::OpenOptions;
++#[cfg(not(target_arch = "wasm32"))]
++use anki_io::fs;
++#[cfg(not(target_arch = "wasm32"))]
++use anki_io::fs::OpenOptions;
++#[cfg(not(target_arch = "wasm32"))]
+ use std::io;
+ 
+ use once_cell::sync::OnceCell;
+ use tracing::subscriber::set_global_default;
++#[cfg(not(target_arch = "wasm32"))]
+ use tracing_appender::non_blocking::NonBlocking;
++#[cfg(not(target_arch = "wasm32"))]
+ use tracing_appender::non_blocking::WorkerGuard;
+ use tracing_subscriber::fmt;
+ use tracing_subscriber::fmt::Layer;
+@@ -16,6 +21,7 @@ use tracing_subscriber::EnvFilter;
+ 
+ use crate::prelude::*;
+ 
++#[cfg(not(target_arch = "wasm32"))]
+ const LOG_ROTATE_BYTES: u64 = 50 * 1024 * 1024;
+ 
+ /// Enable logging to the console, and optionally also to a file.
+@@ -25,11 +31,18 @@ pub fn set_global_logger(path: Option<&str>) -> Result<()> {
+     }
+     static ONCE: OnceCell<()> = OnceCell::new();
+     ONCE.get_or_try_init(|| -> Result<()> {
++        #[cfg(not(target_arch = "wasm32"))]
+         let file_writer = if let Some(path) = path {
+             Some(Layer::new().with_writer(get_appender(path)?))
+         } else {
+             None
+         };
++        // no log file in the browser
++        #[cfg(target_arch = "wasm32")]
++        let file_writer: Option<Layer<_>> = {
++            let _ = path;
++            None
++        };
+         let subscriber = tracing_subscriber::registry()
+             .with(fmt::layer().with_target(false))
+             .with(file_writer)
+@@ -42,8 +55,10 @@ pub fn set_global_logger(path: Option<&str>) -> Result<()> {
+ 
+ /// Holding on to this guard does not actually ensure the log file will be fully
+ /// written, as statics do not implement Drop.
++#[cfg(not(target_arch = "wasm32"))]
+ static APPENDER_GUARD: OnceCell<WorkerGuard> = OnceCell::new();
+ 
++#[cfg(not(target_arch = "wasm32"))]
+ fn get_appender(path: &str) -> Result<NonBlocking> {
+     maybe_rotate_log(path)?;
+     let file = OpenOptions::new().create(true).append(true).open(path)?;
+@@ -54,6 +69,7 @@ fn get_appender(path: &str) -> Result<NonBlocking> {
+     Ok(appender)
+ }
+ 
++#[cfg(not(target_arch = "wasm32"))]
+ fn maybe_rotate_log(path: &str) -> io::Result<()> {
+     let current_bytes = match fs::metadata(path) {
+         Ok(meta) => meta.len(),
+diff --git a/rslib/src/media/check.rs b/rslib/src/media/check.rs
+index 470cade..04db622 100644
+--- a/rslib/src/media/check.rs
++++ b/rslib/src/media/check.rs
+@@ -1,10 +1,10 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
++use anki_io::fs;
+ use std::borrow::Cow;
+ use std::collections::HashMap;
+ use std::collections::HashSet;
+-use std::fs;
+ use std::io;
+ use std::sync::LazyLock;
+ 
+@@ -258,7 +258,7 @@ impl MediaChecker<'_> {
+         let mut case_insensitive_fnames = HashSet::<UniCase<String>>::new();
+         let mut files_sorted = vec![];
+ 
+-        for dentry in self.media.media_folder.read_dir()? {
++        for dentry in fs::read_dir(&self.media.media_folder)? {
+             let dentry = dentry?;
+ 
+             // if the filename is not valid unicode, skip it
+@@ -356,7 +356,7 @@ impl MediaChecker<'_> {
+         let mut total_files = 0;
+         let mut total_bytes = 0;
+ 
+-        for dentry in trash.read_dir()? {
++        for dentry in fs::read_dir(&trash)? {
+             let dentry = dentry?;
+ 
+             self.increment_progress()?;
+@@ -377,7 +377,7 @@ impl MediaChecker<'_> {
+     pub fn empty_trash(&mut self) -> Result<()> {
+         let trash = trash_folder(&self.media.media_folder)?;
+ 
+-        for dentry in trash.read_dir()? {
++        for dentry in fs::read_dir(&trash)? {
+             let dentry = dentry?;
+ 
+             self.increment_progress()?;
+@@ -391,7 +391,7 @@ impl MediaChecker<'_> {
+     pub fn restore_trash(&mut self) -> Result<()> {
+         let trash = trash_folder(&self.media.media_folder)?;
+ 
+-        for dentry in trash.read_dir()? {
++        for dentry in fs::read_dir(&trash)? {
+             let dentry = dentry?;
+ 
+             self.increment_progress()?;
+@@ -515,7 +515,7 @@ impl MediaChecker<'_> {
+             if matches!(fname, Cow::Borrowed(_)) {
+                 if let Cow::Owned(normname) = normalize_nfc_filename(fname.as_ref().into()) {
+                     let path = self.media.media_folder.join(&normname);
+-                    if path.exists() {
++                    if anki_io::exists(&path) {
+                         fname = normname.into();
+                     }
+                 }
+@@ -618,10 +618,10 @@ pub(crate) mod test {
+ 
+     use anki_io::create_dir;
+     use anki_io::read_to_string;
++    use anki_io::tempfile::tempdir;
++    use anki_io::tempfile::TempDir;
+     use anki_io::write_file;
+     use anki_io::write_file_and_flush;
+-    use tempfile::tempdir;
+-    use tempfile::TempDir;
+ 
+     use super::*;
+     use crate::collection::CollectionBuilder;
+diff --git a/rslib/src/media/files.rs b/rslib/src/media/files.rs
+index 29ad81f..ea4cd86 100644
+--- a/rslib/src/media/files.rs
++++ b/rslib/src/media/files.rs
+@@ -1,9 +1,9 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
++use anki_io::fs;
++use anki_io::fs::FileTimes;
+ use std::borrow::Cow;
+-use std::fs;
+-use std::fs::FileTimes;
+ use std::io;
+ use std::io::Read;
+ use std::path::Path;
+@@ -322,9 +322,7 @@ pub(crate) fn sha1_of_data(data: &[u8]) -> Sha1Hash {
+ }
+ 
+ pub(crate) fn mtime_as_i64<P: AsRef<Path>>(path: P) -> io::Result<i64> {
+-    Ok(path
+-        .as_ref()
+-        .metadata()?
++    Ok(fs::metadata(path.as_ref())?
+         .modified()?
+         .duration_since(time::UNIX_EPOCH)
+         .unwrap()
+@@ -358,7 +356,7 @@ where
+         fs::rename(&src_path, &dst_path)?;
+ 
+         // mark it as modified, so we can expire it in the future
+-        let secs = time::SystemTime::now();
++        let secs = anki_io::now();
+         let times = FileTimes::new().set_accessed(secs).set_modified(secs);
+         if let Err(err) = set_file_times(&dst_path, times) {
+             // The libc utimes() call fails on (some? all?) Android devices. Since we don't
+@@ -449,7 +447,7 @@ pub(crate) fn data_for_file(media_folder: &Path, fname: &str) -> Result<Option<V
+ mod test {
+     use std::borrow::Cow;
+ 
+-    use tempfile::tempdir;
++    use anki_io::tempfile::tempdir;
+ 
+     use crate::media::files::add_data_to_folder_uniquely;
+     use crate::media::files::add_hash_suffix_to_file_stem;
+@@ -520,7 +518,7 @@ mod test {
+             "test-88fdd585121a4ccb3d1540527aee53a77c77abb8.mp3"
+         );
+ 
+-        let mut written_files = std::fs::read_dir(dpath)
++        let mut written_files = anki_io::fs::read_dir(dpath)
+             .unwrap()
+             .map(|d| d.unwrap().file_name().to_string_lossy().into_owned())
+             .collect::<Vec<_>>();
+diff --git a/rslib/src/media/service.rs b/rslib/src/media/service.rs
+index e25282b..e76e28a 100644
+--- a/rslib/src/media/service.rs
++++ b/rslib/src/media/service.rs
+@@ -52,7 +52,7 @@ impl crate::services::MediaService for Collection {
+             .unwrap_or_default()
+             .to_str()
+             .unwrap_or_default();
+-        let data = std::fs::read(&input.path)?;
++        let data = anki_io::fs::read(&input.path)?;
+         Ok(self.media()?.add_file(base_name, &data)?.to_string().into())
+     }
+ 
+@@ -112,9 +112,9 @@ impl crate::services::MediaService for Collection {
+ mod tests {
+     use anki_io::create_dir;
+     use anki_io::read_file;
++    use anki_io::tempfile::tempdir;
++    use anki_io::tempfile::TempDir;
+     use anki_io::write_file;
+-    use tempfile::tempdir;
+-    use tempfile::TempDir;
+ 
+     use super::*;
+     use crate::collection::CollectionBuilder;
+diff --git a/rslib/src/scheduler/fsrs/params.rs b/rslib/src/scheduler/fsrs/params.rs
+index 22d1c30..3dc9907 100644
+--- a/rslib/src/scheduler/fsrs/params.rs
++++ b/rslib/src/scheduler/fsrs/params.rs
+@@ -4,6 +4,7 @@ use std::collections::HashMap;
+ use std::iter;
+ use std::path::Path;
+ use std::thread;
++#[cfg(not(target_arch = "wasm32"))]
+ use std::time::Duration;
+ 
+ use anki_io::write_file;
+@@ -116,7 +117,14 @@ impl Collection {
+             })?;
+             let progress = CombinedProgressState::new_shared();
+             let progress2 = progress.clone();
+-            let progress_thread = thread::spawn(move || {
++            // The browser build has one thread: no live progress while computing.
++            #[cfg(target_arch = "wasm32")]
++            let progress_thread: Option<thread::JoinHandle<()>> = {
++                drop((progress, anki_progress, review_count));
++                None
++            };
++            #[cfg(not(target_arch = "wasm32"))]
++            let progress_thread = Some(thread::spawn(move || {
+                 let mut finished = false;
+                 while !finished {
+                     thread::sleep(Duration::from_millis(100));
+@@ -131,7 +139,7 @@ impl Collection {
+                         return;
+                     }
+                 }
+-            });
++            }));
+             Ok((progress2, progress_thread))
+         };
+ 
+@@ -148,7 +156,9 @@ impl Collection {
+             }),
+         };
+         let mut params = fsrs::compute_parameters(input.clone())?;
+-        progress_thread.join().ok();
++        if let Some(progress_thread) = progress_thread {
++            progress_thread.join().ok();
++        }
+         if let Ok(current_fsrs) = FSRS::new(current_params) {
+             let current_log_loss = current_fsrs.evaluate(items.clone(), |_| true)?.log_loss;
+             let optimized_fsrs = FSRS::new(&params)?;
+diff --git a/rslib/src/search/sqlwriter.rs b/rslib/src/search/sqlwriter.rs
+index ded3fbd..5a635ca 100644
+--- a/rslib/src/search/sqlwriter.rs
++++ b/rslib/src/search/sqlwriter.rs
+@@ -1121,8 +1121,8 @@ impl SearchNode {
+ 
+ #[cfg(test)]
+ mod test {
++    use anki_io::tempfile::tempdir;
+     use anki_io::write_file;
+-    use tempfile::tempdir;
+ 
+     use super::super::parser::parse;
+     use super::*;
+diff --git a/rslib/src/storage/sqlite.rs b/rslib/src/storage/sqlite.rs
+index e1f5efb..eefdec5 100644
+--- a/rslib/src/storage/sqlite.rs
++++ b/rslib/src/storage/sqlite.rs
+@@ -50,6 +50,7 @@ pub struct SqliteStorage {
+ }
+ 
+ fn open_or_create_collection_db(path: &Path) -> Result<Connection> {
++    anki_io::prepare_for_sqlite(path)?;
+     let db = Connection::open(path)?;
+ 
+     if std::env::var("TRACESQL").is_ok() {
+@@ -65,9 +66,14 @@ fn open_or_create_collection_db(path: &Path) -> Result<Connection> {
+     db.pragma_update(None, "page_size", 4096)?;
+     db.pragma_update(None, "cache_size", -40 * 1024)?;
+     db.pragma_update(None, "legacy_file_format", false)?;
+-    db.pragma_update(None, "journal_mode", "wal")?;
+-    // Android has no /tmp folder, and fails in the default config.
+-    #[cfg(target_os = "android")]
++    let journal_mode = anki_io::sqlite_journal_mode("wal");
++    db.pragma_update(None, "journal_mode", journal_mode)?;
++    if journal_mode == "memory" {
++        db.pragma_update(None, "synchronous", "off")?;
++    }
++    // Android has no /tmp folder, and fails in the default config; nor does the
++    // browser.
++    #[cfg(any(target_os = "android", target_arch = "wasm32"))]
+     db.pragma_update(None, "temp_store", &"memory")?;
+ 
+     db.set_prepared_statement_cache_capacity(50);
+@@ -550,7 +556,11 @@ impl SqliteStorage {
+         if let Some(version) = desired_version {
+             self.downgrade_to(version)?;
+             if version.has_journal_mode_delete() {
+-                self.db.pragma_update(None, "journal_mode", "delete")?;
++                self.db.pragma_update(
++                    None,
++                    "journal_mode",
++                    anki_io::sqlite_journal_mode("delete"),
++                )?;
+             }
+         }
+         Ok(())
+diff --git a/rslib/src/sync/collection/meta.rs b/rslib/src/sync/collection/meta.rs
+index 928416a..f3d2505 100644
+--- a/rslib/src/sync/collection/meta.rs
++++ b/rslib/src/sync/collection/meta.rs
+@@ -3,7 +3,7 @@
+ 
+ use ammonia::Url;
+ use anki_io::metadata;
+-use axum::http::StatusCode;
++use http::StatusCode;
+ use serde::Deserialize;
+ use serde::Serialize;
+ use tracing::debug;
+diff --git a/rslib/src/sync/collection/tests.rs b/rslib/src/sync/collection/tests.rs
+index 04b8693..22f2ea9 100644
+--- a/rslib/src/sync/collection/tests.rs
++++ b/rslib/src/sync/collection/tests.rs
+@@ -6,13 +6,13 @@
+ use std::future::Future;
+ use std::sync::LazyLock;
+ 
++use anki_io::tempfile::tempdir;
++use anki_io::tempfile::TempDir;
+ use anki_proto::sync::sync_status_response;
+ use axum::http::StatusCode;
+ use reqwest::Client;
+ use reqwest::Url;
+ use serde_json::json;
+-use tempfile::tempdir;
+-use tempfile::TempDir;
+ use tokio::sync::Mutex;
+ use tokio::sync::MutexGuard;
+ use tracing::Instrument;
+diff --git a/rslib/src/sync/collection/upload.rs b/rslib/src/sync/collection/upload.rs
+index 5247a80..29a4525 100644
+--- a/rslib/src/sync/collection/upload.rs
++++ b/rslib/src/sync/collection/upload.rs
+@@ -1,19 +1,18 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
+-use std::fs;
+ use std::io::Write;
+ 
+ use anki_io::atomic_rename;
+ use anki_io::new_tempfile_in_parent_of;
+ use anki_io::write_file;
++#[cfg(not(target_arch = "wasm32"))]
+ use axum::response::IntoResponse;
++#[cfg(not(target_arch = "wasm32"))]
+ use axum::response::Response;
+ use flate2::write::GzEncoder;
+ use flate2::Compression;
+-use futures::StreamExt;
+ use reqwest::Client;
+-use tokio_util::io::ReaderStream;
+ 
+ use crate::collection::CollectionBuilder;
+ use crate::error::SyncErrorKind;
+@@ -44,7 +43,7 @@ impl Collection {
+         let col_path = self.col_path.clone();
+         let progress = self.new_progress_handler();
+         self.close(Some(SchemaVersion::V18))?;
+-        let col_data = fs::read(&col_path)?;
++        let col_data = anki_io::read_file(&col_path)?;
+ 
+         let total_bytes = col_data.len();
+         if server.endpoint.as_str().contains("ankiweb") {
+@@ -101,6 +100,7 @@ pub fn handle_received_upload(
+     Ok(UploadResponse::Ok)
+ }
+ 
++#[cfg(not(target_arch = "wasm32"))]
+ impl IntoResponse for UploadResponse {
+     fn into_response(self) -> Response {
+         match self {
+@@ -135,10 +135,6 @@ pub fn check_upload_limit(size: usize, limit: usize) -> Result<()> {
+ 
+ pub async fn gzipped_data_from_vec(vec: Vec<u8>) -> Result<Vec<u8>> {
+     let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+-    let mut stream = ReaderStream::new(&vec[..]);
+-    while let Some(chunk) = stream.next().await {
+-        let chunk = chunk?;
+-        encoder.write_all(&chunk)?;
+-    }
++    encoder.write_all(&vec)?;
+     encoder.finish().map_err(Into::into)
+ }
+diff --git a/rslib/src/sync/error.rs b/rslib/src/sync/error.rs
+index b26b6c3..12719c2 100644
+--- a/rslib/src/sync/error.rs
++++ b/rslib/src/sync/error.rs
+@@ -5,10 +5,13 @@ use std::error::Error;
+ use std::fmt::Display;
+ use std::fmt::Formatter;
+ 
+-use axum::http::StatusCode;
++#[cfg(not(target_arch = "wasm32"))]
+ use axum::response::IntoResponse;
++#[cfg(not(target_arch = "wasm32"))]
+ use axum::response::Redirect;
++#[cfg(not(target_arch = "wasm32"))]
+ use axum::response::Response;
++use http::StatusCode;
+ 
+ pub type HttpResult<T, E = HttpError> = Result<T, E>;
+ 
+@@ -49,6 +52,7 @@ impl HttpError {
+     }
+ }
+ 
++#[cfg(not(target_arch = "wasm32"))]
+ impl IntoResponse for HttpError {
+     fn into_response(self) -> Response {
+         let HttpError {
+diff --git a/rslib/src/sync/http_client/full_sync.rs b/rslib/src/sync/http_client/full_sync.rs
+index d1e7d56..bb7650f 100644
+--- a/rslib/src/sync/http_client/full_sync.rs
++++ b/rslib/src/sync/http_client/full_sync.rs
+@@ -4,8 +4,8 @@
+ use std::future::Future;
+ use std::time::Duration;
+ 
+-use tokio::select;
+-use tokio::time::interval;
++use futures::future::select;
++use futures::future::Either;
+ 
+ use crate::progress::ThrottlingProgressHandler;
+ use crate::sync::collection::progress::FullSyncProgress;
+@@ -27,9 +27,8 @@ impl HttpSyncClient {
+         let io_monitor = IoMonitor::new();
+         let io_monitor2 = io_monitor.clone();
+         let update_progress = async move {
+-            let mut interval = interval(Duration::from_millis(100));
+             loop {
+-                interval.tick().await;
++                sleep(Duration::from_millis(100)).await;
+                 let (total_bytes, transferred_bytes) = {
+                     let guard = io_monitor2.0.lock().unwrap();
+                     (
+@@ -61,10 +60,7 @@ impl HttpSyncClient {
+     ) -> HttpResult<SyncResponse<Vec<u8>>> {
+         let (io_monitor, progress_fut) = self.full_sync_progress_monitor(false, progress);
+         let output = self.request_ext(SyncMethod::Download, req, io_monitor);
+-        select! {
+-            _ = progress_fut => unreachable!(),
+-            out = output => out
+-        }
++        first_of(output, progress_fut).await
+     }
+ 
+     pub(in super::super) async fn upload_with_progress(
+@@ -74,9 +70,19 @@ impl HttpSyncClient {
+     ) -> HttpResult<SyncResponse<UploadResponse>> {
+         let (io_monitor, progress_fut) = self.full_sync_progress_monitor(true, progress);
+         let output = self.request_ext(SyncMethod::Upload, req, io_monitor);
+-        select! {
+-            _ = progress_fut => unreachable!(),
+-            out = output => out
+-        }
++        first_of(output, progress_fut).await
+     }
+ }
++
++/// The output of `fut`, polling `background` (which never finishes) alongside it.
++async fn first_of<T>(fut: impl Future<Output = T>, background: impl Future<Output = ()>) -> T {
++    match select(Box::pin(fut), Box::pin(background)).await {
++        Either::Left((out, _)) => out,
++        Either::Right(_) => unreachable!(),
++    }
++}
++
++#[cfg(target_arch = "wasm32")]
++use crate::wasm::sleep;
++#[cfg(not(target_arch = "wasm32"))]
++use tokio::time::sleep;
+diff --git a/rslib/src/sync/http_client/io_monitor_wasm.rs b/rslib/src/sync/http_client/io_monitor_wasm.rs
+new file mode 100644
+index 0000000..ced64c8
+--- /dev/null
++++ b/rslib/src/sync/http_client/io_monitor_wasm.rs
+@@ -0,0 +1,136 @@
++// Copyright: Ankitects Pty Ltd and contributors
++// License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
++
++//! The browser's version of io_monitor.rs: requests go through fetch, bodies are
++//! compressed in one go rather than streamed (fetch can't stream uploads
++//! everywhere), and the stall timeout runs on setTimeout.
++
++use std::sync::Arc;
++use std::sync::Mutex;
++use std::time::Duration;
++
++use futures::future::select;
++use futures::future::Either;
++use futures::StreamExt;
++use reqwest::header::CONTENT_LENGTH;
++use reqwest::header::CONTENT_TYPE;
++use reqwest::RequestBuilder;
++use reqwest::StatusCode;
++use web_time::Instant;
++
++use crate::sync::error::HttpError;
++use crate::sync::error::HttpResult;
++use crate::sync::error::OrHttpErr;
++use crate::sync::response::ORIGINAL_SIZE;
++use crate::wasm::sleep;
++use crate::wasm::AssertSend;
++
++#[derive(Clone)]
++pub struct IoMonitor(pub Arc<Mutex<IoMonitorInner>>);
++
++impl IoMonitor {
++    pub fn new() -> Self {
++        Self(Arc::new(Mutex::new(IoMonitorInner {
++            last_activity: Instant::now(),
++            bytes_sent: 0,
++            total_bytes_to_send: 0,
++            bytes_received: 0,
++            total_bytes_to_receive: 0,
++        })))
++    }
++
++    fn touch(&self, f: impl FnOnce(&mut IoMonitorInner)) {
++        let mut inner = self.0.lock().unwrap();
++        inner.last_activity = Instant::now();
++        f(&mut inner);
++    }
++
++    /// Returns if no I/O activity observed for `stall_time`.
++    pub async fn timeout(&self, stall_time: Duration) {
++        loop {
++            sleep(Duration::from_millis(1000)).await;
++            let last_activity = self.0.lock().unwrap().last_activity;
++            if last_activity.elapsed() > stall_time {
++                return;
++            }
++        }
++    }
++
++    /// Takes care of encoding provided request data and setting content type to
++    /// binary, and returns the decompressed response body.
++    pub async fn zstd_request_with_timeout(
++        &self,
++        request: RequestBuilder,
++        request_body: Vec<u8>,
++        stall_duration: Duration,
++    ) -> HttpResult<Vec<u8>> {
++        AssertSend(self.request_inner(request, request_body, stall_duration)).await
++    }
++
++    async fn request_inner(
++        &self,
++        request: RequestBuilder,
++        request_body: Vec<u8>,
++        stall_duration: Duration,
++    ) -> HttpResult<Vec<u8>> {
++        let request_total = request_body.len() as u32;
++        let compressed = zstd::stream::encode_all(&request_body[..], 0)
++            .or_http_err(StatusCode::INTERNAL_SERVER_ERROR, "encode zstd body")?;
++        drop(request_body);
++        self.touch(|i| i.total_bytes_to_send += request_total);
++
++        let exchange = async move {
++            let resp = request
++                .header(CONTENT_TYPE, "application/octet-stream")
++                .body(compressed)
++                .send()
++                .await?
++                .error_for_status()?;
++            // fetch has sent the whole body once headers come back
++            self.touch(|i| i.bytes_sent += request_total);
++            let response_total = resp
++                .headers()
++                .get(&ORIGINAL_SIZE)
++                .and_then(|v| v.to_str().ok())
++                .and_then(|v| v.parse::<u32>().ok())
++                .or_bad_request("missing original size")?;
++            // Progress counts compressed bytes against the compressed length when the
++            // server gives one, and the original size otherwise.
++            let wire_total = resp
++                .headers()
++                .get(CONTENT_LENGTH)
++                .and_then(|v| v.to_str().ok())
++                .and_then(|v| v.parse::<u32>().ok())
++                .unwrap_or(response_total);
++            self.touch(|i| i.total_bytes_to_receive += wire_total);
++            let mut body = Vec::with_capacity(wire_total as usize);
++            let mut stream = resp.bytes_stream();
++            while let Some(chunk) = stream.next().await {
++                let chunk = chunk.or_http_err(StatusCode::SEE_OTHER, "stream failure")?;
++                self.touch(|i| i.bytes_received += chunk.len() as u32);
++                body.extend_from_slice(&chunk);
++            }
++            let data = zstd::stream::decode_all(&body[..]).or_bad_request("decode zstd body")?;
++            Ok::<_, HttpError>(data)
++        };
++        let exchange = Box::pin(exchange);
++        let stall = Box::pin(self.timeout(stall_duration));
++        match select(exchange, stall).await {
++            Either::Left((data, _)) => data,
++            Either::Right(_) => Err(HttpError {
++                code: StatusCode::REQUEST_TIMEOUT,
++                context: "timeout monitor".into(),
++                source: None,
++            }),
++        }
++    }
++}
++
++#[derive(Debug)]
++pub struct IoMonitorInner {
++    last_activity: Instant,
++    pub bytes_sent: u32,
++    pub total_bytes_to_send: u32,
++    pub bytes_received: u32,
++    pub total_bytes_to_receive: u32,
++}
+diff --git a/rslib/src/sync/http_client/mod.rs b/rslib/src/sync/http_client/mod.rs
+index 7366cfb..ebacf0b 100644
+--- a/rslib/src/sync/http_client/mod.rs
++++ b/rslib/src/sync/http_client/mod.rs
+@@ -2,6 +2,10 @@
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
+ pub(crate) mod full_sync;
++#[cfg(not(target_arch = "wasm32"))]
++pub(crate) mod io_monitor;
++#[cfg(target_arch = "wasm32")]
++#[path = "io_monitor_wasm.rs"]
+ pub(crate) mod io_monitor;
+ mod protocol;
+ 
+diff --git a/rslib/src/sync/http_server/media_manager/download.rs b/rslib/src/sync/http_server/media_manager/download.rs
+index 617858a..a26dc15 100644
+--- a/rslib/src/sync/http_server/media_manager/download.rs
++++ b/rslib/src/sync/http_server/media_manager/download.rs
+@@ -1,7 +1,7 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
+-use std::fs;
++use anki_io::fs;
+ use std::io::ErrorKind;
+ 
+ use anki_io::FileIoSnafu;
+diff --git a/rslib/src/sync/http_server/media_manager/upload.rs b/rslib/src/sync/http_server/media_manager/upload.rs
+index 6a37cba..18fb6cb 100644
+--- a/rslib/src/sync/http_server/media_manager/upload.rs
++++ b/rslib/src/sync/http_server/media_manager/upload.rs
+@@ -1,7 +1,7 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
+-use std::fs;
++use anki_io::fs;
+ use std::io::ErrorKind;
+ use std::path::Path;
+ 
+diff --git a/rslib/src/sync/media/database/client/changetracker.rs b/rslib/src/sync/media/database/client/changetracker.rs
+index 2d2220c..ec51609 100644
+--- a/rslib/src/sync/media/database/client/changetracker.rs
++++ b/rslib/src/sync/media/database/client/changetracker.rs
+@@ -238,16 +238,16 @@ where
+ 
+ #[cfg(test)]
+ mod test {
+-    use std::fs;
+-    use std::fs::FileTimes;
++    use anki_io::fs;
++    use anki_io::fs::FileTimes;
+     use std::path::Path;
+     use std::time;
+     use std::time::Duration;
+ 
+     use anki_io::create_dir;
+     use anki_io::set_file_times;
++    use anki_io::tempfile::tempdir;
+     use anki_io::write_file;
+-    use tempfile::tempdir;
+ 
+     use super::*;
+     use crate::error::Result;
+diff --git a/rslib/src/sync/media/database/client/mod.rs b/rslib/src/sync/media/database/client/mod.rs
+index fe3e7c8..d722976 100644
+--- a/rslib/src/sync/media/database/client/mod.rs
++++ b/rslib/src/sync/media/database/client/mod.rs
+@@ -305,6 +305,7 @@ fn trace(event: rusqlite::trace::TraceEvent) {
+ }
+ 
+ pub(crate) fn open_or_create<P: AsRef<Path>>(path: P) -> error::Result<Connection> {
++    anki_io::prepare_for_sqlite(path.as_ref())?;
+     let mut db = Connection::open(path)?;
+ 
+     if std::env::var("TRACESQL").is_ok() {
+@@ -316,7 +317,11 @@ pub(crate) fn open_or_create<P: AsRef<Path>>(path: P) -> error::Result<Connectio
+ 
+     db.pragma_update(None, "page_size", 4096)?;
+     db.pragma_update(None, "legacy_file_format", false)?;
+-    db.pragma_update_and_check(None, "journal_mode", "wal", |_| Ok(()))?;
++    let journal_mode = anki_io::sqlite_journal_mode("wal");
++    db.pragma_update_and_check(None, "journal_mode", journal_mode, |_| Ok(()))?;
++    if journal_mode == "memory" {
++        db.pragma_update(None, "synchronous", "off")?;
++    }
+ 
+     initial_db_setup(&mut db)?;
+ 
+@@ -342,7 +347,7 @@ fn initial_db_setup(db: &mut Connection) -> error::Result<()> {
+ #[cfg(test)]
+ mod test {
+     use anki_io::new_tempfile;
+-    use tempfile::TempDir;
++    use anki_io::tempfile::TempDir;
+ 
+     use crate::error::Result;
+     use crate::media::files::sha1_of_data;
+diff --git a/rslib/src/sync/media/tests.rs b/rslib/src/sync/media/tests.rs
+index 245b75e..f8e390a 100644
+--- a/rslib/src/sync/media/tests.rs
++++ b/rslib/src/sync/media/tests.rs
+@@ -3,7 +3,7 @@
+ 
+ #![cfg(test)]
+ 
+-use std::fs;
++use anki_io::fs;
+ use std::net::IpAddr;
+ use std::thread::sleep;
+ use std::time::Duration;
+diff --git a/rslib/src/sync/mod.rs b/rslib/src/sync/mod.rs
+index 447c6f3..d9fe77d 100644
+--- a/rslib/src/sync/mod.rs
++++ b/rslib/src/sync/mod.rs
+@@ -4,6 +4,7 @@
+ pub mod collection;
+ pub mod error;
+ pub mod http_client;
++#[cfg(not(target_arch = "wasm32"))]
+ pub mod http_server;
+ pub mod login;
+ pub mod media;
+diff --git a/rslib/src/sync/request/header_and_stream.rs b/rslib/src/sync/request/header_and_stream.rs
+index 917bd1c..5b81ded 100644
+--- a/rslib/src/sync/request/header_and_stream.rs
++++ b/rslib/src/sync/request/header_and_stream.rs
+@@ -1,117 +1,151 @@
+ // Copyright: Ankitects Pty Ltd and contributors
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
+-use std::fmt::Display;
+-use std::io::Cursor;
+-use std::io::ErrorKind;
+-use std::marker::PhantomData;
+-use std::net::IpAddr;
+-
+-use axum::http::StatusCode;
+-use axum_extra::headers::Header;
+-use axum_extra::headers::HeaderName;
+-use axum_extra::headers::HeaderValue;
+-use bytes::Bytes;
+-use futures::Stream;
+-use futures::TryStreamExt;
+-use serde::de::DeserializeOwned;
++use http::HeaderName;
+ use serde::Deserialize;
+ use serde::Serialize;
+-use tokio::io::AsyncReadExt;
+-use tokio_util::io::ReaderStream;
++#[cfg(not(target_arch = "wasm32"))]
++pub use streams::*;
+ 
+-use crate::sync::error::HttpError;
+-use crate::sync::error::HttpResult;
+-use crate::sync::error::OrHttpErr;
+-use crate::sync::request::SyncRequest;
+-use crate::sync::request::MAXIMUM_SYNC_PAYLOAD_BYTES_UNCOMPRESSED;
+ use crate::sync::version::SyncVersion;
+ 
+-impl<T> SyncRequest<T> {
+-    pub(super) async fn from_header_and_stream<S, E>(
+-        sync_header: SyncHeader,
+-        body_stream: S,
+-        ip: IpAddr,
+-    ) -> HttpResult<SyncRequest<T>>
++#[cfg(not(target_arch = "wasm32"))]
++mod streams {
++    use std::fmt::Display;
++    use std::io::Cursor;
++    use std::io::ErrorKind;
++    use std::marker::PhantomData;
++    use std::net::IpAddr;
++
++    use axum::http::StatusCode;
++    use axum_extra::headers::Header;
++    use axum_extra::headers::HeaderName;
++    use axum_extra::headers::HeaderValue;
++    use bytes::Bytes;
++    use futures::Stream;
++    use futures::TryStreamExt;
++    use serde::de::DeserializeOwned;
++    use tokio::io::AsyncReadExt;
++    use tokio_util::io::ReaderStream;
++
++    use super::SyncHeader;
++    use super::SYNC_HEADER_NAME;
++    use crate::sync::error::HttpError;
++    use crate::sync::error::HttpResult;
++    use crate::sync::error::OrHttpErr;
++    use crate::sync::request::SyncRequest;
++    use crate::sync::request::MAXIMUM_SYNC_PAYLOAD_BYTES_UNCOMPRESSED;
++
++    impl<T> SyncRequest<T> {
++        pub(super) async fn from_header_and_stream<S, E>(
++            sync_header: SyncHeader,
++            body_stream: S,
++            ip: IpAddr,
++        ) -> HttpResult<SyncRequest<T>>
++        where
++            S: Stream<Item = Result<Bytes, E>> + Unpin,
++            E: Display,
++            T: DeserializeOwned,
++        {
++            sync_header.sync_version.ensure_supported()?;
++            let data = decode_zstd_body_for_server(body_stream).await?;
++            Ok(Self {
++                sync_key: sync_header.sync_key,
++                session_key: sync_header.session_key,
++                media_client_version: None,
++                data,
++                ip,
++                json_output_type: PhantomData,
++                sync_version: sync_header.sync_version,
++                client_version: sync_header.client_ver,
++            })
++        }
++    }
++
++    /// Enforces max payload size
++    pub async fn decode_zstd_body_for_server<S, E>(data: S) -> HttpResult<Vec<u8>>
++    where
++        S: Stream<Item = Result<Bytes, E>> + Unpin,
++        E: Display,
++    {
++        let reader = tokio_util::io::StreamReader::new(
++            data.map_err(|e| std::io::Error::new(ErrorKind::ConnectionAborted, format!("{e}"))),
++        );
++        let reader = async_compression::tokio::bufread::ZstdDecoder::new(reader);
++        let mut buf: Vec<u8> = vec![];
++        reader
++            .take(*MAXIMUM_SYNC_PAYLOAD_BYTES_UNCOMPRESSED)
++            .read_to_end(&mut buf)
++            .await
++            .or_bad_request("decoding zstd body")?;
++        Ok(buf)
++    }
++
++    /// Does not enforce payload size
++    pub fn decode_zstd_body_stream_for_client<S, E>(
++        data: S,
++    ) -> impl Stream<Item = HttpResult<Bytes>>
+     where
+         S: Stream<Item = Result<Bytes, E>> + Unpin,
+         E: Display,
+-        T: DeserializeOwned,
+     {
+-        sync_header.sync_version.ensure_supported()?;
+-        let data = decode_zstd_body_for_server(body_stream).await?;
+-        Ok(Self {
+-            sync_key: sync_header.sync_key,
+-            session_key: sync_header.session_key,
+-            media_client_version: None,
+-            data,
+-            ip,
+-            json_output_type: PhantomData,
+-            sync_version: sync_header.sync_version,
+-            client_version: sync_header.client_ver,
++        let reader = tokio_util::io::StreamReader::new(
++            data.map_err(|e| std::io::Error::new(ErrorKind::ConnectionAborted, format!("{e}"))),
++        );
++        let reader = async_compression::tokio::bufread::ZstdDecoder::new(reader);
++        ReaderStream::new(reader).map_err(|err| HttpError {
++            code: StatusCode::BAD_REQUEST,
++            context: "decode zstd body".into(),
++            source: Some(Box::new(err) as _),
+         })
+     }
+-}
+ 
+-/// Enforces max payload size
+-pub async fn decode_zstd_body_for_server<S, E>(data: S) -> HttpResult<Vec<u8>>
+-where
+-    S: Stream<Item = Result<Bytes, E>> + Unpin,
+-    E: Display,
+-{
+-    let reader = tokio_util::io::StreamReader::new(
+-        data.map_err(|e| std::io::Error::new(ErrorKind::ConnectionAborted, format!("{e}"))),
+-    );
+-    let reader = async_compression::tokio::bufread::ZstdDecoder::new(reader);
+-    let mut buf: Vec<u8> = vec![];
+-    reader
+-        .take(*MAXIMUM_SYNC_PAYLOAD_BYTES_UNCOMPRESSED)
+-        .read_to_end(&mut buf)
+-        .await
+-        .or_bad_request("decoding zstd body")?;
+-    Ok(buf)
+-}
++    pub fn encode_zstd_body(data: Vec<u8>) -> impl Stream<Item = HttpResult<Bytes>> + Unpin {
++        let enc = async_compression::tokio::bufread::ZstdEncoder::new(Cursor::new(data));
++        ReaderStream::new(enc).map_err(|err| HttpError {
++            code: StatusCode::INTERNAL_SERVER_ERROR,
++            context: "encode zstd body".into(),
++            source: Some(Box::new(err) as _),
++        })
++    }
+ 
+-/// Does not enforce payload size
+-pub fn decode_zstd_body_stream_for_client<S, E>(data: S) -> impl Stream<Item = HttpResult<Bytes>>
+-where
+-    S: Stream<Item = Result<Bytes, E>> + Unpin,
+-    E: Display,
+-{
+-    let reader = tokio_util::io::StreamReader::new(
+-        data.map_err(|e| std::io::Error::new(ErrorKind::ConnectionAborted, format!("{e}"))),
+-    );
+-    let reader = async_compression::tokio::bufread::ZstdDecoder::new(reader);
+-    ReaderStream::new(reader).map_err(|err| HttpError {
+-        code: StatusCode::BAD_REQUEST,
+-        context: "decode zstd body".into(),
+-        source: Some(Box::new(err) as _),
+-    })
+-}
++    pub fn encode_zstd_body_stream<S, E>(data: S) -> impl Stream<Item = HttpResult<Bytes>>
++    where
++        S: Stream<Item = Result<Bytes, E>> + Unpin,
++        E: Display,
++    {
++        let reader = tokio_util::io::StreamReader::new(
++            data.map_err(|e| std::io::Error::new(ErrorKind::ConnectionAborted, format!("{e}"))),
++        );
++        let reader = async_compression::tokio::bufread::ZstdEncoder::new(reader);
++        ReaderStream::new(reader).map_err(|err| HttpError {
++            code: StatusCode::BAD_REQUEST,
++            context: "encode zstd body".into(),
++            source: Some(Box::new(err) as _),
++        })
++    }
+ 
+-pub fn encode_zstd_body(data: Vec<u8>) -> impl Stream<Item = HttpResult<Bytes>> + Unpin {
+-    let enc = async_compression::tokio::bufread::ZstdEncoder::new(Cursor::new(data));
+-    ReaderStream::new(enc).map_err(|err| HttpError {
+-        code: StatusCode::INTERNAL_SERVER_ERROR,
+-        context: "encode zstd body".into(),
+-        source: Some(Box::new(err) as _),
+-    })
+-}
++    impl Header for SyncHeader {
++        fn name() -> &'static HeaderName {
++            &SYNC_HEADER_NAME
++        }
++
++        fn decode<'i, I>(values: &mut I) -> Result<Self, axum_extra::headers::Error>
++        where
++            Self: Sized,
++            I: Iterator<Item = &'i HeaderValue>,
++        {
++            values
++                .next()
++                .and_then(|value| value.to_str().ok())
++                .and_then(|s| serde_json::from_str(s).ok())
++                .ok_or_else(axum_extra::headers::Error::invalid)
++        }
+ 
+-pub fn encode_zstd_body_stream<S, E>(data: S) -> impl Stream<Item = HttpResult<Bytes>>
+-where
+-    S: Stream<Item = Result<Bytes, E>> + Unpin,
+-    E: Display,
+-{
+-    let reader = tokio_util::io::StreamReader::new(
+-        data.map_err(|e| std::io::Error::new(ErrorKind::ConnectionAborted, format!("{e}"))),
+-    );
+-    let reader = async_compression::tokio::bufread::ZstdEncoder::new(reader);
+-    ReaderStream::new(reader).map_err(|err| HttpError {
+-        code: StatusCode::BAD_REQUEST,
+-        context: "encode zstd body".into(),
+-        source: Some(Box::new(err) as _),
+-    })
++        fn encode<E: Extend<HeaderValue>>(&self, _values: &mut E) {
++            todo!()
++        }
++    }
+ }
+ 
+ #[derive(Serialize, Deserialize)]
+@@ -127,25 +161,3 @@ pub struct SyncHeader {
+ }
+ 
+ pub static SYNC_HEADER_NAME: HeaderName = HeaderName::from_static("anki-sync");
+-
+-impl Header for SyncHeader {
+-    fn name() -> &'static HeaderName {
+-        &SYNC_HEADER_NAME
+-    }
+-
+-    fn decode<'i, I>(values: &mut I) -> Result<Self, axum_extra::headers::Error>
+-    where
+-        Self: Sized,
+-        I: Iterator<Item = &'i HeaderValue>,
+-    {
+-        values
+-            .next()
+-            .and_then(|value| value.to_str().ok())
+-            .and_then(|s| serde_json::from_str(s).ok())
+-            .ok_or_else(axum_extra::headers::Error::invalid)
+-    }
+-
+-    fn encode<E: Extend<HeaderValue>>(&self, _values: &mut E) {
+-        todo!()
+-    }
+-}
+diff --git a/rslib/src/sync/request/mod.rs b/rslib/src/sync/request/mod.rs
+index 329aa44..5453044 100644
+--- a/rslib/src/sync/request/mod.rs
++++ b/rslib/src/sync/request/mod.rs
+@@ -2,6 +2,7 @@
+ // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+ 
+ pub mod header_and_stream;
++#[cfg(not(target_arch = "wasm32"))]
+ mod multipart;
+ 
+ use std::any::Any;
+@@ -10,20 +11,31 @@ use std::marker::PhantomData;
+ use std::net::IpAddr;
+ use std::sync::LazyLock;
+ 
++#[cfg(not(target_arch = "wasm32"))]
+ use axum::body::Body;
++#[cfg(not(target_arch = "wasm32"))]
+ use axum::extract::FromRequest;
++#[cfg(not(target_arch = "wasm32"))]
+ use axum::extract::Multipart;
++#[cfg(not(target_arch = "wasm32"))]
+ use axum::http::Request;
++#[cfg(not(target_arch = "wasm32"))]
+ use axum::http::StatusCode;
++#[cfg(not(target_arch = "wasm32"))]
+ use axum::RequestPartsExt;
++#[cfg(not(target_arch = "wasm32"))]
+ use axum_client_ip::ClientIp;
++#[cfg(not(target_arch = "wasm32"))]
+ use axum_extra::TypedHeader;
++#[cfg(not(target_arch = "wasm32"))]
+ use header_and_stream::SyncHeader;
+ use serde::de::DeserializeOwned;
+ use serde::Serialize;
+ use serde_json::Error;
++#[cfg(not(target_arch = "wasm32"))]
+ use tracing::Span;
+ 
++#[cfg(not(target_arch = "wasm32"))]
+ use crate::sync::error::HttpError;
+ use crate::sync::error::HttpResult;
+ use crate::sync::error::OrHttpErr;
+@@ -100,6 +112,7 @@ where
+     }
+ }
+ 
++#[cfg(not(target_arch = "wasm32"))]
+ impl<S, T> FromRequest<S> for SyncRequest<T>
+ where
+     S: Send + Sync,
+diff --git a/rslib/src/sync/response.rs b/rslib/src/sync/response.rs
+index 843dd14..9a54df4 100644
+--- a/rslib/src/sync/response.rs
++++ b/rslib/src/sync/response.rs
+@@ -3,10 +3,13 @@
+ 
+ use std::marker::PhantomData;
+ 
++#[cfg(not(target_arch = "wasm32"))]
+ use axum::body::Body;
++#[cfg(not(target_arch = "wasm32"))]
+ use axum::response::IntoResponse;
++#[cfg(not(target_arch = "wasm32"))]
+ use axum::response::Response;
+-use axum_extra::headers::HeaderName;
++use http::HeaderName;
+ use serde::de::DeserializeOwned;
+ use serde::Serialize;
+ 
+@@ -14,7 +17,9 @@ use crate::prelude::*;
+ use crate::sync::collection::upload::UploadResponse;
+ use crate::sync::error::HttpResult;
+ use crate::sync::error::OrHttpErr;
++#[cfg(not(target_arch = "wasm32"))]
+ use crate::sync::request::header_and_stream::encode_zstd_body;
++#[cfg(not(target_arch = "wasm32"))]
+ use crate::sync::version::SyncVersion;
+ 
+ pub static ORIGINAL_SIZE: HeaderName = HeaderName::from_static("anki-original-size");
+@@ -36,6 +41,7 @@ impl<T> SyncResponse<T> {
+         }
+     }
+ 
++    #[cfg(not(target_arch = "wasm32"))]
+     pub fn make_response(self, sync_version: SyncVersion) -> Response {
+         if sync_version.is_zstd() {
+             let header = (&ORIGINAL_SIZE, self.data.len().to_string());
+diff --git a/rslib/src/tests.rs b/rslib/src/tests.rs
+index 0aa8744..593b0a6 100644
+--- a/rslib/src/tests.rs
++++ b/rslib/src/tests.rs
+@@ -4,9 +4,9 @@
+ #![cfg(test)]
+ #![allow(dead_code)]
+ 
++use anki_io::tempfile::tempdir;
++use anki_io::tempfile::TempDir;
+ use itertools::Itertools;
+-use tempfile::tempdir;
+-use tempfile::TempDir;
+ 
+ use crate::collection::CollectionBuilder;
+ use crate::deckconfig::DeckConfigInner;
+diff --git a/rslib/src/timestamp.rs b/rslib/src/timestamp.rs
+index 8a6ac4e..da06078 100644
+--- a/rslib/src/timestamp.rs
++++ b/rslib/src/timestamp.rs
+@@ -104,7 +104,7 @@ fn elapsed() -> time::Duration {
+         // shift clock around rollover time to accommodate Python tests that make bad
+         // assumptions. we should update the tests in the future and remove this
+         // hack.
+-        let mut elap = time::SystemTime::now()
++        let mut elap = anki_io::now()
+             .duration_since(time::SystemTime::UNIX_EPOCH)
+             .unwrap();
+         let now = Local::now();
+@@ -113,7 +113,7 @@ fn elapsed() -> time::Duration {
+         }
+         elap
+     } else {
+-        time::SystemTime::now()
++        anki_io::now()
+             .duration_since(time::SystemTime::UNIX_EPOCH)
+             .unwrap()
+     }
+diff --git a/rslib/src/updates.rs b/rslib/src/updates.rs
+index fa4c6ef..6b601e8 100644
+--- a/rslib/src/updates.rs
++++ b/rslib/src/updates.rs
+@@ -4,9 +4,13 @@
+ use std::path::PathBuf;
+ 
+ use anki_io::create_dir_all;
++#[cfg(not(target_arch = "wasm32"))]
+ use anki_io::remove_file;
++#[cfg(not(target_arch = "wasm32"))]
+ use futures::StreamExt;
++#[cfg(not(target_arch = "wasm32"))]
+ use sha2::Digest;
++#[cfg(not(target_arch = "wasm32"))]
+ use tokio::io::AsyncWriteExt;
+ 
+ use crate::error::AnkiError;
+@@ -64,6 +68,19 @@ pub fn reqwest_error_to_anki_error(err: reqwest::Error) -> AnkiError {
+     }
+ }
+ 
++/// Desktop updates don't apply in the browser.
++#[cfg(target_arch = "wasm32")]
++pub async fn download_file(
++    _client: &reqwest::Client,
++    _progress: &mut ThrottlingProgressHandler<DownloadUpdateProgress>,
++    _filename: &str,
++    _url: &str,
++    _checksum: &str,
++) -> Result<PathBuf> {
++    crate::invalid_input!("not available in the browser")
++}
++
++#[cfg(not(target_arch = "wasm32"))]
+ pub async fn download_file(
+     client: &reqwest::Client,
+     progress: &mut ThrottlingProgressHandler<DownloadUpdateProgress>,
+diff --git a/rslib/src/wasm.rs b/rslib/src/wasm.rs
+new file mode 100644
+index 0000000..ac2bed8
+--- /dev/null
++++ b/rslib/src/wasm.rs
+@@ -0,0 +1,48 @@
++// Copyright: Ankitects Pty Ltd and contributors
++// License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
++
++//! What the browser build needs in place of threads and tokio's timers.
++//!
++//! wasm32-unknown-unknown without the atomics feature has a single thread, so a
++//! future that holds JS values can be treated as Send: nothing can move it to
++//! another thread.
++
++use std::future::Future;
++use std::pin::Pin;
++use std::task::Context;
++use std::task::Poll;
++use std::time::Duration;
++
++use wasm_bindgen::JsCast;
++use wasm_bindgen::JsValue;
++
++pub struct AssertSend<F>(pub F);
++
++// SAFETY: see the module docs; this build has one thread.
++unsafe impl<F> Send for AssertSend<F> {}
++unsafe impl<F> Sync for AssertSend<F> {}
++
++impl<F: Future> Future for AssertSend<F> {
++    type Output = F::Output;
++
++    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
++        // SAFETY: structural pinning of the only field.
++        unsafe { self.map_unchecked_mut(|s| &mut s.0) }.poll(cx)
++    }
++}
++
++/// Resolves after `duration`, using the global setTimeout (window or worker).
++pub async fn sleep(duration: Duration) {
++    let promise = js_sys::Promise::new(&mut |resolve, _reject| {
++        let global = js_sys::global();
++        let set_timeout: js_sys::Function = js_sys::Reflect::get(&global, &"setTimeout".into())
++            .expect("setTimeout")
++            .unchecked_into();
++        let _ = set_timeout.call2(
++            &global,
++            &resolve,
++            &JsValue::from_f64(duration.as_millis() as f64),
++        );
++    });
++    let _ = AssertSend(wasm_bindgen_futures::JsFuture::from(promise)).await;
++}
+diff --git a/rslib/wasm/Cargo.toml b/rslib/wasm/Cargo.toml
+new file mode 100644
+index 0000000..54c2eaa
+--- /dev/null
++++ b/rslib/wasm/Cargo.toml
+@@ -0,0 +1,30 @@
++[package]
++name = "anki_wasm"
++version.workspace = true
++authors.workspace = true
++edition.workspace = true
++license.workspace = true
++publish = false
++rust-version.workspace = true
++description = "Anki's Rust library, for the browser"
++
++[lib]
++crate-type = ["cdylib", "rlib"]
++
++[dependencies]
++anki.workspace = true
++anki_io.workspace = true
++anki_proto.workspace = true
++prost.workspace = true
++js-sys = "0.3"
++wasm-bindgen = "0.2"
++wasm-bindgen-futures = "0.4"
++console_error_panic_hook = "0.1"
++sqlite-wasm-rs = "0.5"
++sqlite-wasm-vfs = "0.2"
++# the zip crate stamps files with time::OffsetDateTime::now_utc(): the JS clock
++time = { version = "0.3", features = ["wasm-bindgen"] }
++# randomness from the browser's crypto
++getrandom_02 = { package = "getrandom", version = "0.2", features = ["js"] }
++getrandom_03 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
++getrandom_04 = { package = "getrandom", version = "0.4", features = ["wasm_js"] }
+diff --git a/rslib/wasm/src/lib.rs b/rslib/wasm/src/lib.rs
+new file mode 100644
+index 0000000..0ec1cbb
+--- /dev/null
++++ b/rslib/wasm/src/lib.rs
+@@ -0,0 +1,288 @@
++// Copyright: Ankitects Pty Ltd and contributors
++// License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
++
++//! Anki's backend for the browser, as rsbridge is for Python: the app calls
++//! backend methods by (service, method) number with protobuf bytes. It runs in a
++//! dedicated worker, where OPFS allows synchronous file access.
++//!
++//! Sync methods need the network, which the browser only offers
++//! asynchronously; they have their own async entry points. While one runs,
++//! the caller must not make other collection calls (the collection is held
++//! for the whole sync), except progress, abort and media sync status.
++
++use std::io;
++
++use anki::backend::init_backend;
++use anki::backend::Backend;
++use anki_io::vfs::DbPool;
++use prost::Message;
++use sqlite_wasm_vfs::relaxed_idb::Preload;
++use sqlite_wasm_vfs::relaxed_idb::RelaxedIdbCfgBuilder;
++use sqlite_wasm_vfs::relaxed_idb::RelaxedIdbUtil;
++use sqlite_wasm_vfs::sahpool::OpfsSAHPoolCfgBuilder;
++use sqlite_wasm_vfs::sahpool::OpfsSAHPoolUtil;
++use wasm_bindgen::prelude::*;
++
++struct Pool(OpfsSAHPoolUtil);
++
++fn pool_err(err: impl std::fmt::Display) -> io::Error {
++    io::Error::other(err.to_string())
++}
++
++impl DbPool for Pool {
++    fn exists(&self, path: &str) -> bool {
++        self.0.exists(path).unwrap_or(false)
++    }
++    fn import(&self, path: &str, data: &[u8]) -> io::Result<()> {
++        // the pool won't import over an existing file
++        if self.0.exists(path).unwrap_or(false) {
++            self.0.delete_db(path).map_err(pool_err)?;
++        }
++        self.0.import_db_unchecked(path, data).map_err(pool_err)
++    }
++    fn export(&self, path: &str) -> io::Result<Vec<u8>> {
++        self.0.export_db(path).map_err(pool_err)
++    }
++    fn delete(&self, path: &str) -> io::Result<bool> {
++        self.0.delete_db(path).map_err(pool_err)
++    }
++}
++
++/// The fallback store: IndexedDB, with databases held in memory and written
++/// back in the background. For browsers without OPFS sync access handles.
++struct IdbPool(RelaxedIdbUtil);
++
++impl DbPool for IdbPool {
++    fn exists(&self, path: &str) -> bool {
++        self.0.exists(path)
++    }
++    fn import(&self, path: &str, data: &[u8]) -> io::Result<()> {
++        if self.0.exists(path) {
++            drop(self.0.delete_db(path).map_err(pool_err)?);
++        }
++        // SQLite's page size, from the header (1 means 65536)
++        let page_size = match data.get(16..18) {
++            Some(&[1, 0]) => 65536,
++            Some(&[hi, lo]) => (hi as usize) * 256 + lo as usize,
++            _ => 4096,
++        };
++        drop(
++            self.0
++                .import_db_unchecked(path, data, page_size)
++                .map_err(pool_err)?,
++        );
++        Ok(())
++    }
++    fn export(&self, path: &str) -> io::Result<Vec<u8>> {
++        self.0.export_db(path).map_err(pool_err)
++    }
++    fn delete(&self, path: &str) -> io::Result<bool> {
++        let existed = self.0.exists(path);
++        if existed {
++            drop(self.0.delete_db(path).map_err(pool_err)?);
++        }
++        Ok(existed)
++    }
++    fn memory_journal(&self) -> bool {
++        true
++    }
++}
++
++async fn install_opfs(directory: &str) -> Result<Box<dyn DbPool>, String> {
++    let cfg = OpfsSAHPoolCfgBuilder::new()
++        .vfs_name("anki-opfs")
++        .directory(directory)
++        .initial_capacity(24)
++        .build();
++    let util = sqlite_wasm_vfs::sahpool::install::<sqlite_wasm_rs::WasmOsCallback>(&cfg, true)
++        .await
++        .map_err(|e| e.to_string())?;
++    // a collection and its WAL, the media database and its journal, files.db
++    // and its WAL, and room for imports
++    util.reserve_minimum_capacity(24)
++        .await
++        .map_err(|e| e.to_string())?;
++    Ok(Box::new(Pool(util)))
++}
++
++async fn install_idb(directory: &str) -> Result<Box<dyn DbPool>, String> {
++    let cfg = RelaxedIdbCfgBuilder::new()
++        .vfs_name(directory)
++        .preload(Preload::All)
++        .build();
++    let util = sqlite_wasm_vfs::relaxed_idb::install::<sqlite_wasm_rs::WasmOsCallback>(&cfg, true)
++        .await
++        .map_err(|e| e.to_string())?;
++    Ok(Box::new(IdbPool(util)))
++}
++
++/// Set up storage for Anki's databases and files, kept under `directory`
++/// (an OPFS folder, or an IndexedDB database). `mode` is "opfs", "idb", or
++/// "auto" (OPFS if the browser supports it). Resolves with the store used.
++/// Call once per worker, before anything else.
++#[wasm_bindgen(js_name = initStorage)]
++pub async fn init_storage(directory: String, mode: String) -> Result<String, JsValue> {
++    console_error_panic_hook::set_once();
++    let (pool, used) = match mode.as_str() {
++        "idb" => (install_idb(&directory).await, "idb"),
++        "opfs" => (install_opfs(&directory).await, "opfs"),
++        _ => match install_opfs(&directory).await {
++            Ok(pool) => (Ok(pool), "opfs"),
++            Err(_) => (install_idb(&directory).await, "idb"),
++        },
++    };
++    let pool = pool.map_err(|e| JsValue::from_str(&format!("storage ({used}): {e}")))?;
++    anki_io::vfs::set_db_pool(pool);
++    Ok(used.into())
++}
++
++#[wasm_bindgen(js_name = buildHash)]
++pub fn build_hash() -> String {
++    anki::version::buildhash().into()
++}
++
++#[wasm_bindgen]
++pub struct Engine {
++    backend: Backend,
++}
++
++fn error_bytes(backend: &Backend, err: anki::error::AnkiError) -> JsValue {
++    let bytes = err.into_protobuf(backend.i18n()).encode_to_vec();
++    js_sys::Uint8Array::from(&bytes[..]).into()
++}
++
++fn decode<T: Message + Default>(backend: &Backend, input: &[u8]) -> Result<T, JsValue> {
++    T::decode(input).map_err(|e| error_bytes(backend, e.into()))
++}
++
++fn bytes(data: &[u8]) -> JsValue {
++    js_sys::Uint8Array::from(data).into()
++}
++
++#[wasm_bindgen]
++impl Engine {
++    /// `init` is an encoded BackendInit.
++    #[wasm_bindgen(constructor)]
++    pub fn new(init: &[u8]) -> Result<Engine, JsValue> {
++        let backend = init_backend(init).map_err(|e| JsValue::from_str(&e))?;
++        Ok(Engine { backend })
++    }
++
++    /// Run a backend method. Fails with an encoded BackendError.
++    pub fn command(&self, service: u32, method: u32, input: &[u8]) -> Result<Vec<u8>, JsValue> {
++        self.backend
++            .run_service_method(service, method, input)
++            .map_err(|err| bytes(&err))
++    }
++
++    /// DB proxy commands (JSON in and out), as pylib's db_command.
++    #[wasm_bindgen(js_name = dbCommand)]
++    pub fn db_command(&self, input: &[u8]) -> Result<Vec<u8>, JsValue> {
++        self.backend
++            .run_db_command_bytes(input)
++            .map_err(|err| bytes(&err))
++    }
++
++    #[wasm_bindgen(js_name = syncLogin)]
++    pub fn sync_login(&self, input: Vec<u8>) -> js_sys::Promise {
++        let backend = self.backend.clone();
++        wasm_bindgen_futures::future_to_promise(async move {
++            let req = decode(&backend, &input)?;
++            match backend.sync_login_async(req).await {
++                Ok(out) => Ok(bytes(&out.encode_to_vec())),
++                Err(err) => Err(error_bytes(&backend, err)),
++            }
++        })
++    }
++
++    #[wasm_bindgen(js_name = syncStatus)]
++    pub fn sync_status(&self, input: Vec<u8>) -> js_sys::Promise {
++        let backend = self.backend.clone();
++        wasm_bindgen_futures::future_to_promise(async move {
++            let req = decode(&backend, &input)?;
++            match backend.sync_status_async(req).await {
++                Ok(out) => Ok(bytes(&out.encode_to_vec())),
++                Err(err) => Err(error_bytes(&backend, err)),
++            }
++        })
++    }
++
++    #[wasm_bindgen(js_name = syncCollection)]
++    pub fn sync_collection(&self, input: Vec<u8>) -> js_sys::Promise {
++        let backend = self.backend.clone();
++        wasm_bindgen_futures::future_to_promise(async move {
++            let req = decode(&backend, &input)?;
++            match backend.sync_collection_async(req).await {
++                Ok(out) => Ok(bytes(&out.encode_to_vec())),
++                Err(err) => Err(error_bytes(&backend, err)),
++            }
++        })
++    }
++
++    #[wasm_bindgen(js_name = fullUploadOrDownload)]
++    pub fn full_upload_or_download(&self, input: Vec<u8>) -> js_sys::Promise {
++        let backend = self.backend.clone();
++        wasm_bindgen_futures::future_to_promise(async move {
++            let req = decode(&backend, &input)?;
++            match backend.full_upload_or_download_async(req).await {
++                Ok(()) => Ok(bytes(&[])),
++                Err(err) => Err(error_bytes(&backend, err)),
++            }
++        })
++    }
++}
++
++// ---- files, for the app: media to show, packages to import, exports to save ----
++
++fn io_err(err: io::Error) -> JsValue {
++    JsValue::from_str(&err.to_string())
++}
++
++/// A file's contents, or undefined if it doesn't exist.
++#[wasm_bindgen(js_name = readFile)]
++pub fn read_file(path: &str) -> Result<Option<Vec<u8>>, JsValue> {
++    match anki_io::fs::read(path) {
++        Ok(data) => Ok(Some(data)),
++        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
++        Err(e) => Err(io_err(e)),
++    }
++}
++
++#[wasm_bindgen(js_name = writeFile)]
++pub fn write_file(path: &str, data: &[u8]) -> Result<(), JsValue> {
++    anki_io::fs::write(path, data).map_err(io_err)
++}
++
++#[wasm_bindgen(js_name = removeFile)]
++pub fn remove_file(path: &str) -> Result<(), JsValue> {
++    match anki_io::fs::remove_file(path) {
++        Err(e) if e.kind() != io::ErrorKind::NotFound => Err(io_err(e)),
++        _ => Ok(()),
++    }
++}
++
++/// [size, modified ms] of a file, or undefined.
++#[wasm_bindgen(js_name = statFile)]
++pub fn stat_file(path: &str) -> Option<Vec<f64>> {
++    let meta = anki_io::fs::metadata(path).ok()?;
++    let mtime = meta
++        .modified()
++        .ok()?
++        .duration_since(std::time::UNIX_EPOCH)
++        .ok()?
++        .as_millis() as f64;
++    Some(vec![meta.len() as f64, mtime])
++}
++
++/// Names of the files in a folder.
++#[wasm_bindgen(js_name = listDir)]
++pub fn list_dir(path: &str) -> Result<Vec<String>, JsValue> {
++    let mut names = vec![];
++    for entry in anki_io::fs::read_dir(path).map_err(io_err)? {
++        let entry = entry.map_err(io_err)?;
++        if entry.file_type().map_err(io_err)?.is_file() {
++            names.push(entry.file_name().to_string_lossy().into_owned());
++        }
++    }
++    Ok(names)
++}

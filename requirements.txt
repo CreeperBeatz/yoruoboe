@@ -1,0 +1,5 @@
+# For development and tests only; the app needs none of this (see README).
+# The official anki package: a local sync server to test against
+# (`python -m anki.syncserver`), tests/seed_collection.py, and checks of exported files.
+# Keep it at the release in ANKI_VERSION.
+anki==26.9.3

@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+*.log
+data/
+scratch/
+reference/
+vendor/
+test-results/
+web/node_modules/
+web/dist/
+
+# The engine's source: Anki's release plus engine/anki-wasm.patch, recreated by
+# engine/setup_source.py. Its build output (web/src/engine/pkg) and the TypeScript
+# generated from it (web/src/engine/generated) are committed, so the app builds
+# without Rust.
+engine/anki/
+engine/*.log

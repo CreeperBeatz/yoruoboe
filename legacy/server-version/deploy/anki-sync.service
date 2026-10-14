@@ -1,0 +1,21 @@
+[Unit]
+Description=Anki sync server (official, from the anki package)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=__USER__
+WorkingDirectory=__APP_DIR__
+EnvironmentFile=__APP_DIR__/sync.env
+Environment=SYNC_HOST=127.0.0.1
+Environment=SYNC_PORT=27701
+Environment=SYNC_BASE=__APP_DIR__/data/sync
+ExecStart=__APP_DIR__/.venv/bin/python -m anki.syncserver
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

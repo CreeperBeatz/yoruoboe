@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Card media resolves here; card-frame.js points it at this user's media. -->
+    <base href="/" />
+    <script src="/card-frame.js"></script>
+    <link rel="stylesheet" href="/_anki/css/webview.css" />
+    <link rel="stylesheet" href="/_anki/css/reviewer.css" />
+    <style id="standard">
+      /* webview.py's standard_css, minus what only Qt needs */
+      body {
+        background-color: var(--canvas);
+        margin: 12px;
+        padding-bottom: env(safe-area-inset-bottom);
+        overflow-wrap: break-word;
+      }
+      html {
+        font-family: -apple-system, BlinkMacSystemFont, Roboto, 'Segoe UI', Arial, sans-serif;
+        -webkit-text-size-adjust: 100%;
+      }
+    </style>
+    <style id="ankidroid">
+      /* AnkiDroid's flashcard.css: night mode wins over a note type's .card colours,
+         since body.night_mode is more specific than .card. */
+      .nightMode .latex { filter: invert(100%); }
+      video { max-width: 100%; }
+      body.night_mode { color: white; background-color: black; }
+      body.ankidroid_dark_mode { background-color: #303030; }
+      .night_mode input#typeans { color: white; background-color: black; }
+      .ankidroid_dark_mode input#typeans { background-color: #303030; }
+      .night_mode .typeGood { background-color: #508040; }
+      .night_mode .typeBad { background-color: #905050; }
+      .night_mode .replay-button svg circle { fill: #303030; stroke: #ddd; }
+      .night_mode .replay-button svg path { fill: #ddd; }
+    </style>
+    <style id="app"></style>
+  </head>
+  <body class="card">
+    <script src="/_anki/js/reviewer.js"></script>
+    <div id="_mark" hidden>&#x2605;</div>
+    <div id="_flag" hidden>&#x2691;</div>
+    <div id="qa" dir="auto"></div>
+    <script>
+      _blockDefaultDragDropBehavior()
+      cardFrameReady()
+    </script>
+  </body>
+</html>

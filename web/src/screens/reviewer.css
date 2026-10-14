@@ -1,0 +1,229 @@
+.reviewer {
+  background: var(--bg);
+}
+
+.review-topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 2px 12px;
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+  background: var(--top-bar);
+  flex-shrink: 0;
+}
+
+.review-counts {
+  display: flex;
+  gap: 10px;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.review-counts .count {
+  min-width: 0;
+}
+
+.review-counts .count.current {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 600;
+}
+
+.answer-indicator {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.answer-indicator .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: fade-in 0.15s;
+}
+
+.dot.ease1 {
+  background: var(--again);
+}
+.dot.ease2 {
+  background: var(--hard);
+}
+.dot.ease3 {
+  background: var(--good);
+}
+.dot.ease4 {
+  background: var(--easy);
+}
+
+.topbar-mark,
+.topbar-flag,
+.topbar-auto {
+  width: 20px;
+  height: 20px;
+}
+
+.topbar-mark {
+  fill: #e6c300;
+}
+
+.topbar-auto {
+  fill: var(--text-2);
+}
+
+.answer-timer {
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.card-area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.card-spinner {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  margin: 0 0 0 -18px;
+}
+
+.answer-area {
+  display: flex;
+  gap: 1px;
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  background: var(--bg);
+  flex-shrink: 0;
+}
+
+.show-answer {
+  flex: 1;
+  height: 3.6em;
+  border: 0;
+  background: var(--show-answer);
+  color: #fff;
+  font-size: 1em;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.ease-btn {
+  flex: 1;
+  height: 3.6em;
+  border: 0;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  cursor: pointer;
+  line-height: 1.15;
+  font-size: 1em;
+}
+
+.ease-btn .ivl {
+  font-size: 0.8em;
+  opacity: 0.95;
+}
+
+.ease-btn .name {
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.92em;
+}
+
+.ease-btn.ease1 {
+  background: var(--again);
+}
+.ease-btn.ease2 {
+  background: var(--hard);
+}
+.ease-btn.ease3 {
+  background: var(--good);
+}
+.ease-btn.ease4 {
+  background: var(--easy);
+}
+
+.ease-btn:active,
+.show-answer:active {
+  filter: brightness(0.88);
+}
+
+.ease-btn:disabled,
+.show-answer:disabled {
+  filter: saturate(0.6);
+}
+
+.fullscreen-menu {
+  position: fixed;
+  top: calc(8px + env(safe-area-inset-top));
+  right: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.fullscreen-menu svg {
+  width: 22px;
+  height: 22px;
+  fill: #fff;
+}
+
+/* ---- whiteboard ---- */
+
+.whiteboard {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  touch-action: none;
+}
+
+.whiteboard canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.whiteboard-tools {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  gap: 4px;
+  background: var(--popup);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 4px;
+}
+
+.whiteboard-tools .icon-btn {
+  width: 40px;
+  height: 40px;
+}
+
+.whiteboard-tools .icon-btn.active {
+  background: color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
+.pen-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--divider);
+}

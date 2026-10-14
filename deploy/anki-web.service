@@ -1,0 +1,19 @@
+[Unit]
+Description=Anki PWA (static files, and sync requests passed on to AnkiWeb)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=__USER__
+WorkingDirectory=__APP_DIR__
+EnvironmentFile=-__APP_DIR__/.env
+ExecStart=/usr/bin/python3 __APP_DIR__/deploy/serve.py --host 127.0.0.1 --port 8767 --dist __APP_DIR__/web/dist
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target

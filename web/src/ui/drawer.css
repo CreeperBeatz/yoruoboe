@@ -1,0 +1,75 @@
+.drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(304px, 85vw);
+  background: var(--surface);
+  z-index: 51;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: drawer-in 0.2s ease-out;
+  overflow-y: auto;
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+.drawer-header {
+  background: var(--app-bar);
+  color: var(--app-bar-text);
+  padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
+  margin-bottom: 8px;
+}
+
+.drawer-logo img {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  display: block;
+}
+
+.drawer-user {
+  margin-top: 12px;
+  font-weight: 500;
+}
+
+.drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  min-height: 48px;
+  padding: 0 24px;
+  margin: 0 8px;
+  border: 0;
+  border-radius: 24px;
+  background: none;
+  text-align: left;
+  font-weight: 500;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.drawer-item svg {
+  width: 24px;
+  height: 24px;
+  fill: var(--text-2);
+}
+
+.drawer-item.active {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary);
+}
+
+.drawer-item.active svg {
+  fill: var(--primary);
+}
+
+.drawer-item:active {
+  background: var(--ripple);
+}
