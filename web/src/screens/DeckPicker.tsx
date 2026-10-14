@@ -9,6 +9,7 @@ import { navigate } from '../router'
 import { sync, useSync } from '../sync'
 import { AppBar, attempt, IconButton, Menu, prompt, toast, useLongPress, useMenu, type MenuItem } from '../ui/components'
 import { Icon } from '../ui/icons'
+import { InstallNote } from '../install/InstallGuide'
 import { collectionTools } from './tools'
 import { deckActions } from './deckActions'
 import { exportDialog } from './ImportExport'
@@ -136,6 +137,7 @@ export default function DeckPicker({ onMenu }: { onMenu: () => void; me: Me }) {
       {syncing && <div className="progress-bar" />}
       <div className="screen-body deck-list" onClick={() => setFabOpen(false)}>
         <PullToSync onSync={() => sync().then(load)} />
+        {search === null && <InstallNote />}
         {error && !data && <div className="center-message">{error}</div>}
         {!data && !error && <div className="spinner" />}
         {data && data.cardCount === 0 && rows.length <= 1 && !search && <EmptyCollection />}

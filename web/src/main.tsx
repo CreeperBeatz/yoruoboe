@@ -1,6 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+// Caught from the first moment: the browser's offer to install the app.
+import './install/install'
 import { api } from './api'
 import * as be from './engine/generated/backend'
 import { mediaBytes, mimeType } from './local/media'

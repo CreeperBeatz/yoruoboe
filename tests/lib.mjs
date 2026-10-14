@@ -24,6 +24,13 @@ export async function setup(outDir) {
   mkdirSync(out, { recursive: true })
   const { defaultBrowserType: _, ...iphone } = pw.devices['iPhone 13']
   const ctx = await pw[engine].launchPersistentContext(mkdtempSync(join(tmpdir(), 'anki-e2e-')), iphone)
+  // An iPhone's browser gets the install guide on the first visit; these walk the app.
+  // (In every frame: the card's, sandboxed, has no storage.)
+  await ctx.addInitScript(() => {
+    try {
+      localStorage.setItem('anki-install-guide-seen', '1')
+    } catch {}
+  })
   const page = ctx.pages()[0] ?? (await ctx.newPage())
   const problems = []
   let step = 0

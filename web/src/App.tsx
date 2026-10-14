@@ -5,6 +5,7 @@ import { match, navigate, useLocation } from './router'
 import { noteSynced, refreshSyncState, setSyncState, startAutoSync, sync } from './sync'
 import { DialogHost, SnackbarHost } from './ui/components'
 import { Drawer } from './ui/Drawer'
+import { InstallGuide } from './install/InstallGuide'
 import DeckPicker from './screens/DeckPicker'
 import Login from './screens/Login'
 
@@ -121,6 +122,7 @@ export default function App() {
         />
         <DialogHost />
         <SnackbarHost />
+        <InstallGuide />
       </>
     )
 
@@ -150,6 +152,7 @@ export default function App() {
       {drawer && <Drawer me={me} onClose={() => setDrawer(false)} />}
       <DialogHost />
       <SnackbarHost />
+      <InstallGuide />
     </>
   )
 }

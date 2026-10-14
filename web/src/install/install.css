@@ -1,0 +1,157 @@
+/* The install guide and the deck list's note (InstallGuide.tsx). */
+
+.install-scrim {
+  z-index: 60;
+}
+
+.install-panel {
+  z-index: 61;
+  width: min(480px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  margin-top: calc((env(safe-area-inset-top) - env(safe-area-inset-bottom)) / 2);
+}
+
+.install-panel .dialog-body {
+  padding-top: 20px;
+}
+
+.install-x {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-2);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.install-panel .install-title {
+  margin: 0 32px 6px 0;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.install-why {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.install-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.install-steps p {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 8px;
+}
+
+.install-steps p.install-note {
+  display: block;
+  margin: -4px 0 8px 32px;
+}
+
+.install-n {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  transform: translateY(-1px);
+}
+
+.install-steps img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+}
+
+.install-done {
+  margin: 16px 0 4px;
+}
+
+.install-hint-text {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.install-handoff {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.install-handoff p {
+  margin: 0;
+}
+
+/* On the deck list, in a phone's browser. */
+.install-note-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 8px 8px 4px;
+  padding: 10px 4px 10px 14px;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.install-note-bar p {
+  flex: 1;
+  margin: 0;
+}
+
+.install-note-bar strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.install-note-show {
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.install-note-close {
+  flex: none;
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font-size: 22px;
+  line-height: 1.1;
+  cursor: pointer;
+}

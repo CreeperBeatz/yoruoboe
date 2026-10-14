@@ -13,6 +13,8 @@ import { sync, useSync } from '../sync'
 import { storage } from '../local/col'
 import { AppBar, attempt, choose, confirm, prompt, toast } from '../ui/components'
 import { Icon, type IconName } from '../ui/icons'
+import { install, onPhone, useInstall } from '../install/install'
+import { openInstallGuide } from '../install/InstallGuide'
 import './settings.css'
 
 const SECTIONS: { key: string; title: string; icon: IconName; summary: string }[] = [
@@ -30,11 +32,22 @@ const SECTIONS: { key: string; title: string; icon: IconName; summary: string }[
 
 export default function Settings({ section, me, onMenu }: { section: string; me: Me; onMenu?: () => void }) {
   const info = SECTIONS.find((s) => s.key === section)
+  const how = useInstall()
   if (!info)
     return (
       <div className="screen">
         <AppBar title="Settings" nav={onMenu ? 'menu' : 'back'} onNav={onMenu ?? (() => goBack('/'))} />
         <div className="screen-body">
+          {/* In a browser that can install it: on an iPhone the guide, elsewhere the browser's own dialog. */}
+          {how && (
+            <div className="settings-row" onClick={() => (how === 'ios' ? openInstallGuide() : void install())}>
+              <Icon name="download" />
+              <div className="main">
+                <div className="title">{onPhone ? 'Install on the Home Screen' : 'Install the app'}</div>
+                <div className="sub">It opens full screen, keeps your collection, and works offline</div>
+              </div>
+            </div>
+          )}
           {SECTIONS.map((s) => (
             <div key={s.key} className="settings-row" onClick={() => navigate(`/settings/${s.key}`)}>
               <Icon name={s.icon} />

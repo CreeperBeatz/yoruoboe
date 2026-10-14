@@ -1,21 +1,26 @@
-// The README's iPhone install steps: BetterRTK's screenshots of the same Safari screens
-// (../BetterRTK/web/src/install), with its name, icon, address and tab bar covered and
-// this app's put in their place.
+// The install guide's screenshots (web/src/install/InstallGuide.tsx, and the README):
+//  - Safari, step1-5: BetterRTK's screenshots of the same screens
+//    (../BetterRTK/web/src/install), with its name, icon, address and tab bar covered
+//    and this app's put in their place;
+//  - Chrome, chrome1-4: this app's own, taken on an iPhone (docs/install/source), cut to
+//    the part that matters and ringed where to tap, as BetterRTK's are.
 //
 //   node scripts/make_install_shots.mjs
 //
-// Writes docs/install/step1-5.png.
+// Writes web/src/install/step1-5.webp and chrome1-4.webp, 600 pixels wide.
 import { createRequire } from 'node:module'
-import { mkdirSync, readFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
 const require = createRequire(new URL('../web/package.json', import.meta.url))
 const { chromium } = require('playwright')
 const SRC = new URL('../../BetterRTK/web/src/install/', import.meta.url)
-const OUT = new URL('../docs/install/', import.meta.url)
+const OUT = new URL('../web/src/install/', import.meta.url)
+const CHROME = new URL('../docs/install/source/', import.meta.url)
 mkdirSync(OUT, { recursive: true })
 
 const ICON = `data:image/png;base64,${readFileSync(new URL('../web/public/icon-512.png', import.meta.url)).toString('base64')}`
 const HOST = 'anki.betterkanjidictionary.org'
+const RING = '#d4442e'
 
 // Per screenshot: areas to cover (filled with the colour at `sample`), then what to draw.
 const EDITS = {
@@ -40,6 +45,21 @@ const EDITS = {
     { text: 'Anki', at: [138, 185], size: 22, color: '#ffffff' },
     { text: `https://${HOST}/`, at: [138, 257], size: 21, color: '#8a8a8a', maxWidth: 400 },
   ],
+}
+
+// Chrome's: the part of the 1179-pixel-wide screenshot to keep ([x, y, w, h]), and the
+// rings, in the screenshot's pixels.
+const CHROME_CROPS = {
+  chrome1: { crop: [0, 150, 1179, 300], rings: [{ circle: [944, 246, 56] }] },
+  chrome2: { crop: [16, 278, 1147, 1138], rings: [{ rect: [880, 1004, 200, 330, 26] }] },
+  chrome3: { crop: [0, 1600, 1179, 956], rings: [{ rect: [50, 2128, 1082, 148, 28] }] },
+  chrome4: {
+    crop: [0, 210, 1179, 952],
+    rings: [
+      { rect: [932, 250, 206, 140, 36] },
+      { rect: [936, 892, 202, 106, 30] },
+    ],
+  },
 }
 
 const browser = await chromium.launch()
@@ -82,12 +102,52 @@ for (const [name, edits] of Object.entries(EDITS)) {
           ctx.fillText(e.text, e.at[0], e.at[1], e.maxWidth)
         }
       }
-      return canvas.toDataURL('image/png')
+      return canvas.toDataURL('image/webp', 0.8)
     },
     { src, edits, icon: ICON },
   )
-  const out = new URL(`${name}.png`, OUT)
-  await import('node:fs').then((fs) => fs.writeFileSync(out, Buffer.from(png.split(',')[1], 'base64')))
-  console.log('wrote', name)
+  write(name, png)
+}
+for (const [name, { crop, rings }] of Object.entries(CHROME_CROPS)) {
+  const src = `data:image/png;base64,${readFileSync(new URL(`${name}.png`, CHROME)).toString('base64')}`
+  const webp = await page.evaluate(
+    async ({ src, crop, rings, color }) => {
+      const img = await new Promise((resolve, reject) => {
+        const i = new Image()
+        i.onload = () => resolve(i)
+        i.onerror = reject
+        i.src = src
+      })
+      const [cx, cy, cw, ch] = crop
+      const scale = 600 / cw
+      const canvas = document.createElement('canvas')
+      canvas.width = 600
+      canvas.height = Math.round(ch * scale)
+      const ctx = canvas.getContext('2d')
+      ctx.imageSmoothingQuality = 'high'
+      ctx.drawImage(img, cx, cy, cw, ch, 0, 0, canvas.width, canvas.height)
+      ctx.strokeStyle = color
+      ctx.lineWidth = 3
+      for (const r of rings) {
+        ctx.beginPath()
+        if (r.circle) {
+          const [x, y, radius] = r.circle
+          ctx.arc((x - cx) * scale, (y - cy) * scale, radius * scale, 0, 2 * Math.PI)
+        } else {
+          const [x, y, w, h, radius] = r.rect
+          ctx.roundRect((x - cx) * scale, (y - cy) * scale, w * scale, h * scale, radius * scale)
+        }
+        ctx.stroke()
+      }
+      return canvas.toDataURL('image/webp', 0.8)
+    },
+    { src, crop, rings, color: RING },
+  )
+  write(name, webp)
 }
 await browser.close()
+
+function write(name, dataUrl) {
+  writeFileSync(new URL(`${name}.webp`, OUT), Buffer.from(dataUrl.split(',')[1], 'base64'))
+  console.log('wrote', name)
+}

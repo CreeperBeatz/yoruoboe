@@ -185,39 +185,68 @@ does on a server.
 ## Installing on the iPhone
 
 The app is meant to run from the Home Screen: there it opens full screen, keeps its
-data, and works offline. In Safari (iOS 16.4 or later):
+data, and works offline. Opened in a browser on an iPhone or iPad, the app shows these
+steps itself, for the browser in use (the first time, then from the note on the deck
+list and from Settings). It needs iOS 16.4 or later.
+
+### Safari
 
 1. Open **https://anki.betterkanjidictionary.org** and tap **•••** at the bottom right.
    (No ••• button? Tap **Share** and go to step 3.)
 
-   <img src="docs/install/step1.png" width="420" alt="Safari's address bar, with the ••• button">
+   <img src="web/src/install/step1.webp" width="420" alt="Safari's address bar, with the ••• button">
 
 2. Tap **Share**.
 
-   <img src="docs/install/step2.png" width="320" alt="Safari's menu, Share at the top">
+   <img src="web/src/install/step2.webp" width="320" alt="Safari's menu, Share at the top">
 
 3. Tap **View More**.
 
-   <img src="docs/install/step3.png" width="360" alt="The share sheet, View More">
+   <img src="web/src/install/step3.webp" width="360" alt="The share sheet, View More">
 
 4. Tap **Add to Home Screen**.
 
-   <img src="docs/install/step4.png" width="360" alt="Add to Home Screen in the list">
+   <img src="web/src/install/step4.webp" width="360" alt="Add to Home Screen in the list">
 
 5. Keep **Open as Web App** on, and tap **Add**.
 
-   <img src="docs/install/step5.png" width="360" alt="Add to Home Screen, Open as Web App on">
+   <img src="web/src/install/step5.webp" width="360" alt="Add to Home Screen, Open as Web App on">
 
-6. Open **Anki** from the Home Screen and log in with your AnkiWeb email and password,
-   or tap **Use without an account**. The first sync downloads your collection and its
-   media; after that the app works offline and syncs when it can.
+### Chrome
 
-In Chrome on the iPhone, tap **Share** in the address bar, then continue from step 3.
-Other browsers, and apps that open links inside themselves, may not offer Add to Home
-Screen: open the address in Safari.
+1. Open **https://anki.betterkanjidictionary.org** and tap **Share**, in the address bar.
 
-Screenshots: the same Safari screens from BetterRTK's install guide, with its name and
-icon replaced by this app's.
+   <img src="web/src/install/chrome1.webp" width="420" alt="Chrome's address bar, with the Share button">
+
+2. Tap **View More**.
+
+   <img src="web/src/install/chrome2.webp" width="360" alt="The share sheet, View More">
+
+3. Tap **Add to Home Screen**.
+
+   <img src="web/src/install/chrome3.webp" width="360" alt="Add to Home Screen in the list">
+
+4. Keep **Open as Web App** on, and tap **Add**.
+
+   <img src="web/src/install/chrome4.webp" width="360" alt="Add to Home Screen, Open as Web App on">
+
+### Then
+
+Open **Anki** from the Home Screen and log in with your AnkiWeb email and password, or
+tap **Use without an account**. The first sync downloads your collection and its media;
+after that the app works offline and syncs when it can.
+
+The app on the Home Screen keeps its own data, apart from the browser's: whatever you did
+in the browser tab before installing stays there.
+
+Other browsers have Share in their own place (Firefox: in the ☰ menu), then the same
+screens. Brave, and apps that open links inside themselves (Instagram, Messenger…),
+cannot add to the Home Screen: open the address in Safari. The app says so when it is
+in one of them.
+
+Screenshots: Safari's are BetterRTK's install guide's, with its name and icon replaced
+by this app's; Chrome's were taken with this app (`docs/install/source`). Both are cut
+and ringed by `node scripts/make_install_shots.mjs`.
 
 A Home Screen icon keeps the picture it had when it was added: after the icon changes,
 delete it and add it again (the collection stays).
@@ -268,7 +297,7 @@ journals kept in memory on the IndexedDB store.
 | `web/src/screens/` | the screens, named as AnkiDroid's are |
 | `web/public/` | the card frame, and the script put into Anki's pages |
 | `deploy/` | `serve.py` and the Pi's service; the Cloudflare Pages Function |
-| `scripts/` | Anki's pages from the aqt wheel; the icons and install screenshots (`make_*.mjs`) |
-| `docs/` | the AnkiDroid parity checklist, how Anki's pages talk to their host, install screenshots |
+| `scripts/` | Anki's pages from the aqt wheel; the icons and the install guide's screenshots (`make_*.mjs`) |
+| `docs/` | the AnkiDroid parity checklist, how Anki's pages talk to their host, the Chrome install screenshots as taken |
 | `legacy/` | the first, server-based version, for reference |
 | `vendor/`, `reference/` | downloaded: Anki's pages; AnkiDroid's and Anki's source, for reference |
