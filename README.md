@@ -138,6 +138,16 @@ but the build needs Node 20+: on a Pi, a 64-bit OS is the simple way to get it.
 
 4. Later updates: `bash deploy/update.sh` (pull, build, restart).
 
+**Without Node on the machine** (this Pi): build on a PC and publish over SSH. From the
+PC, with what you want deployed committed:
+
+    bash deploy/publish.sh dani@192.168.1.30      # build, push, upload, restart
+
+It pushes `main` to a bare repository on the machine (`~/anki-pwa.git`, cloned to
+`~/anki-pwa`) and uploads `web/dist`. The first time, then run
+`bash deploy/pi-setup.sh` on the machine (it asks for the sudo password) to install
+the service; after that `publish.sh` alone deploys.
+
 On Cloudflare (tunnel or Pages), keep **Rocket Loader** and **Bot Fight Mode** off for
 the app's hostname: sync requests are scripted POSTs that can't answer a challenge.
 Cloudflare's free plan also limits a request to 100 MB, which caps a full upload of a
