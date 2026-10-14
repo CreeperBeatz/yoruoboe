@@ -105,8 +105,9 @@ get('/api/sync', () => syncState())
 
 /** The app was put away: send what changed, as AnkiDroid syncs on exit. */
 post('/api/sync/beacon', async () => {
-  if (await needsPush()) void runSync().catch(() => {})
-  return { ok: true }
+  const started = await needsPush()
+  if (started) void runSync().catch(() => {})
+  return { started }
 })
 
 /** The sync server: '' for AnkiWeb. */

@@ -4602,6 +4602,39 @@ index fa4c6ef..6b601e8 100644
  pub async fn download_file(
      client: &reqwest::Client,
      progress: &mut ThrottlingProgressHandler<DownloadUpdateProgress>,
+diff --git a/rslib/src/version.rs b/rslib/src/version.rs
+index 29f8403..26812a8 100644
+--- a/rslib/src/version.rs
++++ b/rslib/src/version.rs
+@@ -18,7 +18,7 @@ pub(crate) fn sync_client_version() -> &'static str {
+             "anki,{version} ({buildhash}),{platform}",
+             version = version(),
+             buildhash = buildhash(),
+-            platform = env::var("PLATFORM").unwrap_or_else(|_| env::consts::OS.to_string())
++            platform = env::var("PLATFORM").unwrap_or_else(|_| platform().to_string())
+         )
+     });
+     &VER
+@@ -30,8 +30,18 @@ pub(crate) fn sync_client_version_short() -> &'static str {
+             "{version},{buildhash},{platform}",
+             version = version(),
+             buildhash = buildhash(),
+-            platform = env::consts::OS
++            platform = platform()
+         )
+     });
+     &VER
+ }
++
++/// The platform the sync server is told about. In the browser (wasm32-unknown-unknown)
++/// there is no OS name, which would leave it blank; say "web".
++fn platform() -> &'static str {
++    if cfg!(target_arch = "wasm32") {
++        "web"
++    } else {
++        env::consts::OS
++    }
++}
 diff --git a/rslib/src/wasm.rs b/rslib/src/wasm.rs
 new file mode 100644
 index 0000000..ac2bed8

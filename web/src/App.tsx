@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { api, onUnauthorized, type Me } from './api'
 import { effectiveTheme, usePrefs } from './prefs'
 import { match, navigate, useLocation } from './router'
-import { noteSynced, refreshSyncState, setSyncState, startAutoSync, sync } from './sync'
+import { setSyncState, startAutoSync, sync } from './sync'
 import { DialogHost, SnackbarHost } from './ui/components'
 import { Drawer } from './ui/Drawer'
 import { InstallGuide } from './install/InstallGuide'
@@ -67,26 +67,13 @@ export default function App() {
     }
   }, [])
 
-  // AnkiDroid's automatic sync: on opening the app, when it is put away, and (here)
-  // in the background while it is open.
+  // AnkiDroid's automatic sync: on opening the app, then when it is left and come back
+  // to (sync.ts, startAutoSync).
   const signedIn = Boolean(me?.username)
   useEffect(() => {
     if (!signedIn || !prefs.autoSync) return
-    if (prefs.syncOnOpen) void sync({ quiet: true }).then(noteSynced)
-    const stop = startAutoSync()
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') {
-        void api.post('/api/sync/beacon').catch(() => {})
-      } else {
-        void refreshSyncState()
-        void sync({ quiet: true }).then(noteSynced)
-      }
-    }
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => {
-      stop()
-      document.removeEventListener('visibilitychange', onVisibility)
-    }
+    if (prefs.syncOnOpen) void sync({ quiet: true })
+    return startAutoSync()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signedIn, prefs.autoSync])
 

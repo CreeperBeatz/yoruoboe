@@ -2,9 +2,10 @@
  * Sync from the app's side: the button's state, conflicts, and when to sync on our own.
  *
  * The collection is on this device (see local/); syncing sends and fetches changes, as
- * AnkiDroid does. The app syncs when the user taps sync, when it is opened and when it
- * is left (AnkiDroid's "automatic synchronization"), and while open it sends changes
- * once the user has been idle a little and fetches others' now and then.
+ * AnkiDroid does. The app syncs when the user taps sync, and on its own (AnkiDroid's
+ * "automatic synchronization") only when it is opened, when it is left with changes,
+ * and when it is come back to a while after the last sync: about as often as AnkiDroid,
+ * so the sync server sees an ordinary client.
  */
 
 import { useSyncExternalStore } from 'react'
@@ -42,9 +43,12 @@ export function setSyncState(s: SyncState) {
 }
 
 let inFlight: Promise<void> | null = null
+/** When the last sync began, the user's or our own. */
+let lastSync = 0
 
 export function sync({ quiet = false, full }: { quiet?: boolean; full?: 'upload' | 'download' } = {}): Promise<void> {
   if (inFlight) return inFlight
+  lastSync = Date.now()
   inFlight = (async () => {
     set({ syncing: true })
     try {
@@ -94,42 +98,35 @@ export async function refreshSyncState() {
 
 // ---- syncing on our own -------------------------------------------------------------------
 
-/** Changes are sent once the user has left them alone this long. */
-const IDLE_PUSH_MS = 45_000
-/** Others' changes are fetched this often while the app is open. */
-const PULL_MS = 10 * 60_000
+/** Coming back to the app syncs only when the last sync is older than this (AnkiDroid's
+ * AUTOMATIC_SYNC_MINIMAL_INTERVAL). */
+const RESUME_MS = 10 * 60_000
+/** Leaving it sends changes, but not again within this (app switching back and forth). */
+const LEAVE_MS = 60_000
 
-let lastActivity = Date.now()
-let lastSync = 0
-
-/** Start automatic syncing; returns a function that stops it. */
+/**
+ * Automatic sync while the app is open: changes are sent when it is left, and others'
+ * fetched when it is come back to. (Opening it is App's: "Sync when opening the app".)
+ * Returns a function that stops it.
+ */
 export function startAutoSync(): () => void {
-  const touch = () => (lastActivity = Date.now())
-  const events = ['pointerdown', 'keydown'] as const
-  events.forEach((e) => window.addEventListener(e, touch, { passive: true }))
-  const timer = window.setInterval(async () => {
-    if (inFlight || document.visibilityState !== 'visible' || !navigator.onLine) return
-    const s = state.state
-    if (s?.conflict) return
-    const idle = Date.now() - lastActivity > IDLE_PUSH_MS
-    const pending = await api
-      .get<SyncState>('/api/sync')
-      .then((st) => {
-        set({ state: st })
-        return st.pending
-      })
-      .catch(() => false)
-    if ((pending && idle) || Date.now() - lastSync > PULL_MS) {
-      lastSync = Date.now()
-      await sync({ quiet: true })
+  let lastPush = 0
+  const onVisibility = () => {
+    if (!navigator.onLine) return
+    if (document.visibilityState === 'hidden') {
+      if (Date.now() - lastPush < LEAVE_MS) return
+      // It syncs only if there is something to send.
+      void api
+        .post<{ started: boolean }>('/api/sync/beacon')
+        .then((r) => {
+          if (r.started) lastPush = lastSync = Date.now()
+        })
+        .catch(() => {})
+    } else {
+      void refreshSyncState()
+      if (Date.now() - lastSync > RESUME_MS) void sync({ quiet: true })
     }
-  }, 15_000)
-  return () => {
-    events.forEach((e) => window.removeEventListener(e, touch))
-    window.clearInterval(timer)
   }
-}
-
-export function noteSynced() {
-  lastSync = Date.now()
+  document.addEventListener('visibilitychange', onVisibility)
+  return () => document.removeEventListener('visibilitychange', onVisibility)
 }

@@ -45,8 +45,10 @@ host (Pi or Cloudflare Pages): the app's files, and /aw/<host>/… passed on to 
   the host); only the sync key is kept, on the phone. The app also works without an
   account, with a collection on the device only.
 - **Everything works offline**: study, add and edit notes, Anki's pages, the browser.
-  Syncing needs a connection; the app syncs on opening, on leaving, on the sync button
-  and pull-to-refresh, and sends changes after 45 s idle (`web/src/sync.ts`).
+  Syncing needs a connection; the app syncs on the sync button and pull-to-refresh,
+  and on its own about as often as AnkiDroid: on opening, on leaving with changes, and
+  on coming back 10 minutes or more after the last sync (`web/src/sync.ts`). It tells
+  the sync server it is Anki's engine on `web`.
 - **Cards run in a sandbox**: an iframe without same-origin, so a card's script can't
   reach the collection. Its media goes in as data URLs (`web/src/local/media.ts`).
 - **AnkiDroid's JavaScript API** (`AnkiDroidJS`, `showAnswer()`, `buttonAnswerEase1()`,
