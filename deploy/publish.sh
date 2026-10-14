@@ -38,4 +38,4 @@ tar -C web/dist -czf - . | "${SSH[@]}" "$HOST" \
    mv ~/anki-pwa/web/dist.new ~/anki-pwa/web/dist'
 
 echo "== update =="
-"${SSH[@]}" "$HOST" 'cd ~/anki-pwa && bash deploy/update.sh'
+"${SSH[@]}" "$HOST" 'cd ~/anki-pwa && git fetch -q origin main && git checkout -q -B main origin/main && bash deploy/update.sh'
