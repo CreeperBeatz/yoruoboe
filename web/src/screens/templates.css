@@ -17,6 +17,9 @@
   text-transform: uppercase;
   border-bottom: 2px solid transparent;
   cursor: pointer;
+  transition:
+    opacity 0.2s,
+    border-color 0.2s;
 }
 
 .tab.active {

@@ -12,7 +12,7 @@
 //                {type:'flag', flag} {type:'mark', marked}
 //                {type:'mutate-states', key, js}
 //                {type:'get-typed', id}  {type:'scroll', by}  {type:'rpc-result', id, body?, error?}
-//                {type:'user-action', n}  {type:'hint', all}
+//                {type:'user-action', n}  {type:'hint', all}  {type:'leave'}
 //  frame -> app  {type:'ready'} {type:'bridge', cmd} {type:'tap', zone} {type:'swipe', dir}
 //                {type:'double-tap'} {type:'long-press'} {type:'key', ...} {type:'typed', id, value}
 //                {type:'rpc', id, method, body} {type:'shown'}
@@ -108,6 +108,44 @@
 
   let config = { gestures: false, doubleTapMs: 200, zoom: 100, imageZoom: 100, centerVertically: false }
 
+  // A new card: the old one goes at once, the new one slides in from the right once it
+  // is drawn, like the next page. Showing the answer doesn't move anything, as in Anki.
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)')
+  let revealTimer = 0
+  function hideForNewCard() {
+    if (still.matches) return
+    const qa = document.getElementById('qa')
+    qa.style.opacity = '0'
+    // Whatever happens to the card's own scripts, it doesn't stay hidden.
+    clearTimeout(revealTimer)
+    revealTimer = setTimeout(revealNewCard, 1500)
+  }
+  // Answered: the card slides away while the next one is fetched.
+  function leaveCard() {
+    if (still.matches) return
+    const qa = document.getElementById('qa')
+    qa.style.transition = 'opacity 0.12s cubic-bezier(0.3, 0, 1, 1), transform 0.12s cubic-bezier(0.3, 0, 1, 1)'
+    qa.style.transform = 'translateX(-28px)'
+    qa.style.opacity = '0'
+    clearTimeout(revealTimer)
+    revealTimer = setTimeout(revealNewCard, 1500)
+  }
+  function revealNewCard() {
+    clearTimeout(revealTimer)
+    const qa = document.getElementById('qa')
+    if (qa.style.opacity !== '0') return
+    qa.style.transition = ''
+    qa.style.transform = ''
+    qa.style.opacity = ''
+    qa.animate?.(
+      [
+        { opacity: 0, transform: 'translateX(28px)' },
+        { opacity: 1, transform: 'none' },
+      ],
+      { duration: 240, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+    )
+  }
+
   function applyConfig() {
     document.documentElement.classList.toggle('night-mode', !!config.night)
     const css = []
@@ -136,12 +174,20 @@
         applyConfig()
         break
       case 'question':
-        Promise.resolve(_showQuestion(msg.q, msg.a, bodyClass(msg.bodyClass))).then(() => post({ type: 'shown', side: 'question' }))
+        hideForNewCard()
+        Promise.resolve(_showQuestion(msg.q, msg.a, bodyClass(msg.bodyClass)))
+          .finally(revealNewCard)
+          .then(() => post({ type: 'shown', side: 'question' }))
         _drawFlag(msg.flag || 0)
         _drawMark(!!msg.marked)
         hintsShown = 0
         break
+      case 'leave':
+        leaveCard()
+        break
       case 'answer':
+        clearTimeout(revealTimer)
+        document.getElementById('qa').style.cssText = ''
         Promise.resolve(_showAnswer(msg.a, bodyClass(msg.bodyClass))).then(() => post({ type: 'shown', side: 'answer' }))
         break
       case 'flag':

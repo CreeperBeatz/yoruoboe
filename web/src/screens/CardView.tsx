@@ -28,6 +28,8 @@ export type FrameEvent =
 export interface CardViewHandle {
   showQuestion(q: string, a: string, bodyClass: string, flag: number, marked: boolean): void
   showAnswer(a: string, bodyClass: string): void
+  /** The card was answered: move it away until the next one comes. */
+  leave(): void
   setFlag(flag: number): void
   setMark(marked: boolean): void
   typedAnswer(): Promise<string>
@@ -199,6 +201,7 @@ export const CardView = forwardRef<
     showQuestion: (q, a, bodyClass, flag, marked) =>
       sendSide(async () => ({ type: 'question', q: await inlineMedia(q), a: await inlineMedia(a), bodyClass, flag, marked })),
     showAnswer: (a, bodyClass) => sendSide(async () => ({ type: 'answer', a: await inlineMedia(a), bodyClass })),
+    leave: () => sendSide(async () => ({ type: 'leave' })),
     setFlag: (flag) => send({ type: 'flag', flag }),
     setMark: (marked) => send({ type: 'mark', marked }),
     typedAnswer: () =>

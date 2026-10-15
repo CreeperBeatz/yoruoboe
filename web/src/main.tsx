@@ -6,13 +6,17 @@ import './install/install'
 import { api } from './api'
 import * as be from './engine/generated/backend'
 import { mediaBytes, mimeType } from './local/media'
+import '@fontsource-variable/roboto/wght.css'
 import './theme.css'
+import { installRipple } from './ui/motion'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
   </StrictMode>,
 )
+
+installRipple()
 
 // For the browser tests (tests/lib.mjs), and the console.
 ;(window as unknown as { __anki: unknown }).__anki = { api, be }

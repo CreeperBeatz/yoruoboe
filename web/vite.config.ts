@@ -147,7 +147,7 @@ function ankiWeb(): Plugin {
         '/anki-page.html', '/anki-page-untrusted.html',
       ])
       for (const [name, out] of Object.entries(bundle)) {
-        if (out.type === 'chunk' || /\.(css|js|mjs|wasm)$/.test(name)) shell.add(`/${name}`)
+        if (out.type === 'chunk' || /\.(css|js|mjs|wasm|woff2)$/.test(name)) shell.add(`/${name}`)
       }
       const files = [...shell].sort()
       const version = createHash('sha256').update(files.join('\n')).digest('hex').slice(0, 12)

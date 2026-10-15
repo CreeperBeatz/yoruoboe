@@ -1,26 +1,57 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react'
 import { api, onUnauthorized, type Me } from './api'
 import { effectiveTheme, usePrefs } from './prefs'
 import { match, navigate, useLocation } from './router'
 import { setSyncState, startAutoSync, sync } from './sync'
 import { DialogHost, SnackbarHost } from './ui/components'
 import { Drawer } from './ui/Drawer'
+import { RouteTransition } from './ui/motion'
 import { InstallGuide } from './install/InstallGuide'
 import DeckPicker from './screens/DeckPicker'
 import Login from './screens/Login'
 
-const StudyOptions = lazy(() => import('./screens/StudyOptions'))
-const Reviewer = lazy(() => import('./screens/Reviewer'))
-const AnkiPage = lazy(() => import('./screens/AnkiPage'))
-const Browser = lazy(() => import('./screens/Browser'))
-const NoteEditor = lazy(() => import('./screens/NoteEditor'))
-const Settings = lazy(() => import('./screens/Settings'))
-const Notetypes = lazy(() => import('./screens/Notetypes'))
-const FilteredDeck = lazy(() => import('./screens/FilteredDeck'))
-const Previewer = lazy(() => import('./screens/Previewer'))
-const CardTemplateEditor = lazy(() => import('./screens/CardTemplateEditor'))
-const FieldsEditor = lazy(() => import('./screens/FieldsEditor'))
-const ImportExport = lazy(() => import('./screens/ImportExport'))
+/**
+ * A screen loaded when first needed, or ahead of time by `preload`: once loaded it
+ * renders at once, so it slides in drawn rather than as a spinner.
+ */
+const preloads: (() => Promise<unknown>)[] = []
+function screen<P extends object>(load: () => Promise<{ default: ComponentType<P> }>): ComponentType<P> {
+  let loaded: ComponentType<P> | null = null
+  let loading: Promise<{ default: ComponentType<P> }> | null = null
+  const get = () =>
+    (loading ??= load().then((m) => {
+      loaded = m.default
+      return m
+    }))
+  const Lazy = lazy(get)
+  preloads.push(get)
+  return function Screen(props: P) {
+    const Loaded = loaded
+    return Loaded ? <Loaded {...props} /> : <Lazy {...props} />
+  }
+}
+
+const StudyOptions = screen(() => import('./screens/StudyOptions'))
+const Reviewer = screen(() => import('./screens/Reviewer'))
+const AnkiPage = screen(() => import('./screens/AnkiPage'))
+const Browser = screen(() => import('./screens/Browser'))
+const NoteEditor = screen(() => import('./screens/NoteEditor'))
+const Settings = screen(() => import('./screens/Settings'))
+const Notetypes = screen(() => import('./screens/Notetypes'))
+const FilteredDeck = screen(() => import('./screens/FilteredDeck'))
+const Previewer = screen(() => import('./screens/Previewer'))
+const CardTemplateEditor = screen(() => import('./screens/CardTemplateEditor'))
+const FieldsEditor = screen(() => import('./screens/FieldsEditor'))
+const ImportExport = screen(() => import('./screens/ImportExport'))
+
+/** The screens, loaded once the deck list is up (most-used first). */
+function preloadScreens() {
+  let i = 0
+  const next = () => {
+    if (i < preloads.length) void preloads[i++]().catch(() => {}).then(next)
+  }
+  next()
+}
 
 function useSystemDark() {
   const [dark, setDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches)
@@ -69,6 +100,13 @@ export default function App() {
 
   // AnkiDroid's automatic sync: on opening the app, then when it is left and come back
   // to (sync.ts, startAutoSync).
+  const opened = me !== undefined
+  useEffect(() => {
+    if (!opened) return
+    const t = window.setTimeout(preloadScreens, 1200)
+    return () => window.clearTimeout(t)
+  }, [opened])
+
   const signedIn = Boolean(me?.username)
   useEffect(() => {
     if (!signedIn || !prefs.autoSync) return
@@ -135,7 +173,9 @@ export default function App() {
 
   return (
     <>
-      <Suspense fallback={<div className="spinner" />}>{screen}</Suspense>
+      <RouteTransition routeKey={path} dir={loc.dir}>
+        <Suspense fallback={<div className="spinner" />}>{screen}</Suspense>
+      </RouteTransition>
       {drawer && <Drawer me={me} onClose={() => setDrawer(false)} />}
       <DialogHost />
       <SnackbarHost />

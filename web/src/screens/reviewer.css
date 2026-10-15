@@ -31,6 +31,10 @@
   font-weight: 600;
 }
 
+.review-counts .count {
+  transition: font-weight 0.2s;
+}
+
 .answer-indicator {
   flex: 1;
   display: flex;
@@ -41,7 +45,9 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  animation: fade-in 0.15s;
+  animation:
+    pop-in 0.3s var(--ease-standard),
+    fade-out 0.3s 0.7s forwards;
 }
 
 .dot.ease1 {
@@ -62,6 +68,7 @@
 .topbar-auto {
   width: 20px;
   height: 20px;
+  animation: pop-in 0.3s var(--ease-standard);
 }
 
 .topbar-mark {
@@ -112,9 +119,12 @@
   letter-spacing: 0.03em;
   text-transform: uppercase;
   cursor: pointer;
+  animation: answer-in 0.18s var(--ease-decelerate) backwards;
 }
 
+/* The answer buttons rise in, left to right, where Show Answer was. */
 .ease-btn {
+  animation: answer-in 0.22s var(--ease-decelerate) backwards;
   flex: 1;
   height: 3.6em;
   border: 0;
@@ -156,10 +166,20 @@
 
 .ease-btn:active,
 .show-answer:active {
-  filter: brightness(0.88);
+  filter: brightness(0.92);
 }
 
-.ease-btn:disabled,
+@keyframes answer-in {
+  from {
+    opacity: 0;
+    transform: translateY(35%);
+  }
+}
+
+.answer-area {
+  overflow: hidden;
+}
+
 .show-answer:disabled {
   filter: saturate(0.6);
 }

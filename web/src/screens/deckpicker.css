@@ -17,6 +17,33 @@
   background: var(--row-current);
 }
 
+.deck-row {
+  transition: background-color 0.2s;
+}
+
+/* Subdecks unfolding under their parent, or folding away (DeckPicker, toggle). */
+.deck-row.row-in {
+  animation: row-in 0.26s var(--ease-decelerate) backwards;
+}
+
+.deck-row.row-out {
+  animation: row-out 0.14s var(--ease-accelerate) forwards;
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes row-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
 .deck-expander {
   width: 36px;
   height: 44px;
@@ -33,6 +60,11 @@
   width: 24px;
   height: 24px;
   fill: var(--text-2);
+  transition: transform 0.22s var(--ease-standard);
+}
+
+.deck-expander svg.collapsed {
+  transform: rotate(-90deg);
 }
 
 .deck-name {
@@ -69,6 +101,7 @@
   text-align: right;
   font-size: 15px;
   font-variant-numeric: tabular-nums;
+  transition: color 0.3s;
 }
 
 .count.new {
@@ -138,10 +171,39 @@
   overflow: hidden;
 }
 
-.pull-to-sync svg {
-  width: 28px;
-  height: 28px;
+/* Let go: it springs back. */
+.pull-to-sync.settling {
+  transition:
+    height 0.3s var(--ease-standard),
+    opacity 0.3s;
+}
+
+/* Android's pull-to-refresh disc. */
+.pull-disc {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--popup);
+  box-shadow: var(--shadow);
+  transition: background-color 0.2s;
+}
+
+.pull-disc.armed {
+  background: var(--primary);
+}
+
+.pull-disc svg {
+  width: 24px;
+  height: 24px;
   fill: var(--primary);
+  transition: fill 0.2s;
+}
+
+.pull-disc.armed svg {
+  fill: #fff;
 }
 
 .offline-banner {

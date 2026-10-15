@@ -2,6 +2,12 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon, type IconName } from './icons'
+import { afterExit } from './motion'
+
+/** Whether a dialog or menu is open (and not already on its way out). */
+export function overlayOpen(): boolean {
+  return [...document.querySelectorAll('.dialog, .menu')].some((el) => !el.closest('.closing'))
+}
 
 // ---- app bar ------------------------------------------------------------------------
 
@@ -84,20 +90,29 @@ export function Menu({
   onClose: () => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState<{ left: number; top: number }>({ left: -9999, top: -9999 })
+  const [pos, setPos] = useState<{ left: number; top: number; transformOrigin?: string }>({ left: -9999, top: -9999 })
   const [sub, setSub] = useState<MenuItem[] | null>(null)
+  const [closing, setClosing] = useState(false)
   const shown = (sub ?? items).filter((i) => i === 'separator' || !i.hidden)
+  // Fade out, then go: what a menu entry does starts at once, beside the fade.
+  const close = () => {
+    if (closing) return
+    setClosing(true)
+    afterExit(onClose, 100)
+  }
+  const closeRef = useRef(close)
+  closeRef.current = close
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation()
-        onClose()
+        closeRef.current()
       }
     }
     window.addEventListener('keydown', key, true)
     return () => window.removeEventListener('keydown', key, true)
-  }, [onClose])
+  }, [])
 
   useLayoutEffect(() => {
     const el = ref.current
@@ -108,49 +123,57 @@ export function Menu({
     const vh = window.innerHeight
     let left: number
     let top: number
+    let from: { x: number; y: number }
     if (anchor instanceof HTMLElement) {
       const r = anchor.getBoundingClientRect()
       left = r.right - w
       top = r.top + 4
+      from = { x: r.left + r.width / 2, y: r.top + r.height / 2 }
     } else {
       left = anchor.x
       top = anchor.y
+      from = anchor
     }
     left = Math.max(8, Math.min(left, vw - w - 8))
     top = Math.max(8, Math.min(top, vh - h - 8))
-    setPos({ left, top })
+    // The menu grows out of what opened it.
+    const ox = Math.max(0, Math.min(w, from.x - left))
+    const oy = Math.max(0, Math.min(h, from.y - top))
+    setPos({ left, top, transformOrigin: `${ox}px ${oy}px` })
   }, [anchor, sub])
 
   return (
     <>
-      <div className="scrim clear" onClick={onClose} onContextMenu={(e) => (e.preventDefault(), onClose())} />
-      <div className="menu" ref={ref} style={pos} role="menu">
-        {shown.map((item, i) =>
-          item === 'separator' ? (
-            <div key={i} className="menu-sep" />
-          ) : (
-            <button
-              key={i}
-              className="menu-item"
-              role="menuitem"
-              disabled={item.disabled}
-              style={item.color ? { color: item.color } : undefined}
-              onClick={() => {
-                if (item.submenu) {
-                  setSub(item.submenu)
-                  return
-                }
-                onClose()
-                item.onClick?.()
-              }}
-            >
-              {item.icon && <Icon name={item.icon} style={item.color ? { fill: item.color } : undefined} />}
-              <span>{item.label}</span>
-              {item.checked && <Icon name="check" className="check" />}
-              {item.submenu && <Icon name="chevronRight" className="check" />}
-            </button>
-          ),
-        )}
+      <div className={`scrim clear${closing ? ' closing' : ''}`} onClick={close} onContextMenu={(e) => (e.preventDefault(), close())} />
+      <div className={`menu${closing ? ' closing' : ''}`} ref={ref} style={pos} role="menu">
+        <div className="menu-list" key={sub ? 'sub' : 'main'}>
+          {shown.map((item, i) =>
+            item === 'separator' ? (
+              <div key={i} className="menu-sep" />
+            ) : (
+              <button
+                key={i}
+                className="menu-item"
+                role="menuitem"
+                disabled={item.disabled}
+                style={item.color ? { color: item.color } : undefined}
+                onClick={() => {
+                  if (item.submenu) {
+                    setSub(item.submenu)
+                    return
+                  }
+                  close()
+                  item.onClick?.()
+                }}
+              >
+                {item.icon && <Icon name={item.icon} style={item.color ? { fill: item.color } : undefined} />}
+                <span>{item.label}</span>
+                {item.checked && <Icon name="check" className="check" />}
+                {item.submenu && <Icon name="chevronRight" className="check" />}
+              </button>
+            ),
+          )}
+        </div>
       </div>
     </>
   )
@@ -200,19 +223,32 @@ export function Dialog({
 
 // Imperative dialogs (confirm, prompt, choose), rendered by <DialogHost/>.
 
-type Pending = { id: number; render: (close: () => void) => ReactNode }
+type Pending = { id: number; render: (close: () => void) => ReactNode; closing?: boolean }
 let pendingSeq = 0
 const dialogListeners = new Set<(d: Pending[]) => void>()
 let dialogs: Pending[] = []
 
-function pushDialog(render: Pending['render']) {
-  const entry = { id: ++pendingSeq, render }
-  dialogs = [...dialogs, entry]
+function notifyDialogs() {
   dialogListeners.forEach((fn) => fn(dialogs))
-  return () => {
+}
+
+/** Close a dialog: it plays its exit (theme.css, .closing) and then goes. */
+function dismissDialog(entry: Pending) {
+  if (entry.closing || !dialogs.includes(entry)) return
+  entry.closing = true
+  dialogs = [...dialogs]
+  notifyDialogs()
+  afterExit(() => {
     dialogs = dialogs.filter((d) => d !== entry)
-    dialogListeners.forEach((fn) => fn(dialogs))
-  }
+    notifyDialogs()
+  }, 150)
+}
+
+function pushDialog(render: Pending['render']) {
+  const entry: Pending = { id: ++pendingSeq, render }
+  dialogs = [...dialogs, entry]
+  notifyDialogs()
+  return () => dismissDialog(entry)
 }
 
 export function DialogHost() {
@@ -225,14 +261,11 @@ export function DialogHost() {
   }, [])
   return (
     <>
-      {list.map((d) => {
-        let close = () => {}
-        close = () => {
-          dialogs = dialogs.filter((x) => x !== d)
-          dialogListeners.forEach((fn) => fn(dialogs))
-        }
-        return <div key={d.id}>{d.render(close)}</div>
-      })}
+      {list.map((d) => (
+        <div key={d.id} className={d.closing ? 'closing' : undefined}>
+          {d.render(() => dismissDialog(d))}
+        </div>
+      ))}
     </>
   )
 }
@@ -439,27 +472,37 @@ export function toast(text: string, action?: { label: string; run: () => void },
 
 export function SnackbarHost() {
   const [snack, setSnack] = useState<Snack | null>(null)
+  const [closing, setClosing] = useState(false)
   useEffect(() => {
-    snackListeners.add(setSnack)
+    const show = (s: Snack | null) => {
+      setClosing(false)
+      setSnack(s)
+    }
+    snackListeners.add(show)
     return () => {
-      snackListeners.delete(setSnack)
+      snackListeners.delete(show)
     }
   }, [])
+  const hide = (id: number) => {
+    setClosing(true)
+    afterExit(() => setSnack((s) => (s?.id === id ? null : s)), 180)
+  }
   useEffect(() => {
     if (!snack) return
-    const t = setTimeout(() => setSnack((s) => (s?.id === snack.id ? null : s)), snack.ms)
+    const t = setTimeout(() => hide(snack.id), snack.ms)
     return () => clearTimeout(t)
   }, [snack])
   if (!snack) return null
   return (
-    <div className="snackbar" role="status">
+    // Keyed by the message, so a new one comes in afresh.
+    <div key={snack.id} className={`snackbar${closing ? ' closing' : ''}`} role="status">
       <span>{snack.text}</span>
       {snack.action && (
         <button
           className="text-btn"
           onClick={() => {
             snack.action?.run()
-            setSnack(null)
+            hide(snack.id)
           }}
         >
           {snack.action.label}

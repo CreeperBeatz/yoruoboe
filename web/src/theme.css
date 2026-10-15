@@ -48,6 +48,8 @@
   --selected: #bbdefb;
   --scrim: rgba(0, 0, 0, 0.45);
   --shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  --shadow-menu: 0 2px 4px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.14);
+  --shadow-dialog: 0 11px 15px -7px rgba(0, 0, 0, 0.2), 0 24px 38px 3px rgba(0, 0, 0, 0.14), 0 9px 46px 8px rgba(0, 0, 0, 0.12);
   --accent: #455a64;
 }
 
@@ -101,6 +103,8 @@
   --marked: #5e4670;
   --selected: #2c4a63;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  --shadow-menu: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --shadow-dialog: 0 16px 48px rgba(0, 0, 0, 0.7);
   --accent: #90caf9;
 }
 
@@ -147,6 +151,8 @@
   --marked: #43314f;
   --selected: #1d3347;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  --shadow-menu: 0 0 0 1px #2a2a2a, 0 4px 16px rgba(0, 0, 0, 0.8);
+  --shadow-dialog: 0 0 0 1px #2a2a2a, 0 16px 48px rgba(0, 0, 0, 0.8);
   --accent: #90caf9;
 }
 
@@ -165,8 +171,13 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  /* AnkiDroid's Roboto, shipped with the app: iPhones don't have it. Scripts it lacks
+     (Japanese, Chinese, Arabic…) come from the system's fonts. */
+  font-family: 'Roboto Variable', Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   font-size: 16px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
 }
@@ -232,6 +243,7 @@ a {
   margin: 0;
   font-size: 20px;
   font-weight: 500;
+  letter-spacing: 0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -263,6 +275,10 @@ a {
   background: var(--ripple);
 }
 
+.icon-btn svg {
+  transition: transform 0.2s var(--ease-standard);
+}
+
 .icon-btn:disabled {
   opacity: 0.4;
 }
@@ -282,6 +298,7 @@ a {
   border-radius: 50%;
   background: #ff5252;
   border: 1.5px solid var(--app-bar);
+  animation: pop-in 0.3s var(--ease-standard);
 }
 
 /* ---- menus & dialogs ----------------------------------------------------------- */
@@ -291,7 +308,14 @@ a {
   inset: 0;
   background: var(--scrim);
   z-index: 50;
-  animation: fade-in 0.15s;
+  animation: fade-in 0.2s var(--ease-decelerate);
+}
+
+/* Dialogs, menus, the drawer and the snackbar on their way out (components.tsx). */
+.closing > .scrim,
+.scrim.closing {
+  animation: fade-out 0.15s var(--ease-accelerate) forwards;
+  pointer-events: none;
 }
 
 .scrim.clear {
@@ -304,6 +328,12 @@ a {
   }
 }
 
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
 .menu {
   position: fixed;
   min-width: 200px;
@@ -312,11 +342,27 @@ a {
   overflow-y: auto;
   background: var(--popup);
   color: var(--text);
-  border-radius: 4px;
-  box-shadow: var(--shadow);
+  border-radius: 8px;
+  box-shadow: var(--shadow-menu);
   padding: 8px 0;
   z-index: 51;
-  animation: fade-in 0.12s;
+  animation: menu-in 0.18s var(--ease-decelerate);
+}
+
+.menu.closing {
+  animation: fade-out 0.1s linear forwards;
+  pointer-events: none;
+}
+
+.menu-list {
+  animation: fade-in 0.15s var(--ease-decelerate);
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
 }
 
 .menu-item {
@@ -368,10 +414,29 @@ a {
   flex-direction: column;
   background: var(--popup);
   color: var(--text);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
+  border-radius: 12px;
+  box-shadow: var(--shadow-dialog);
   z-index: 51;
-  animation: fade-in 0.15s;
+  animation: dialog-in 0.22s var(--ease-decelerate);
+}
+
+.closing > .dialog {
+  animation: dialog-out 0.15s var(--ease-accelerate) forwards;
+  pointer-events: none;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+}
+
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
 }
 
 .dialog h2 {
@@ -379,6 +444,7 @@ a {
   padding: 20px 24px 12px;
   font-size: 20px;
   font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 .dialog-body {
@@ -435,6 +501,11 @@ a {
   font-size: 14px;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: box-shadow 0.2s var(--ease-standard);
+}
+
+.btn:active {
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
 }
 
 .btn:disabled {
@@ -464,6 +535,9 @@ a {
   border-radius: 4px;
   background: var(--input-bg);
   outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 .field input:focus,
@@ -504,12 +578,24 @@ a {
   min-width: 280px;
   padding: 6px 8px 6px 16px;
   min-height: 48px;
-  border-radius: 4px;
+  border-radius: 6px;
   background: #323232;
   color: #fff;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-menu);
   z-index: 60;
-  animation: snack-in 0.2s;
+  animation: snack-in 0.25s var(--ease-decelerate);
+}
+
+.snackbar.closing {
+  animation: snack-out 0.18s var(--ease-accelerate) forwards;
+  pointer-events: none;
+}
+
+@keyframes snack-out {
+  to {
+    transform: translate(-50%, 12px);
+    opacity: 0;
+  }
 }
 
 .snackbar span {
@@ -523,7 +609,7 @@ a {
 
 @keyframes snack-in {
   from {
-    transform: translate(-50%, 20px);
+    transform: translate(-50%, 100%);
     opacity: 0;
   }
 }
@@ -546,18 +632,31 @@ a {
   justify-content: center;
   cursor: pointer;
   z-index: 20;
-  transition: transform 0.2s;
+  transition:
+    transform 0.2s var(--ease-standard),
+    box-shadow 0.2s var(--ease-standard);
+  animation: fab-appear 0.3s var(--ease-decelerate);
+}
+
+.fab:active {
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+
+@keyframes fab-appear {
+  from {
+    transform: scale(0);
+  }
 }
 
 .fab svg {
   width: 26px;
   height: 26px;
   fill: currentColor;
-  transition: transform 0.2s;
+  transition: transform 0.25s var(--ease-standard);
 }
 
 .fab.open svg {
-  transform: rotate(45deg);
+  transform: rotate(135deg);
 }
 
 .fab-menu {
@@ -579,7 +678,7 @@ a {
   background: none;
   cursor: pointer;
   padding: 0;
-  animation: fab-in 0.15s;
+  animation: fab-in 0.22s var(--ease-decelerate) backwards;
 }
 
 .fab-mini-row .label {
@@ -610,7 +709,7 @@ a {
 
 @keyframes fab-in {
   from {
-    transform: translateY(10px);
+    transform: translateY(16px) scale(0.8);
     opacity: 0;
   }
 }
@@ -646,6 +745,7 @@ a {
 
 .progress-bar {
   height: 3px;
+  animation: fade-in 0.2s;
   background: var(--divider);
   overflow: hidden;
   position: relative;
@@ -657,14 +757,31 @@ a {
   inset: 0;
   width: 40%;
   background: var(--primary);
-  animation: indeterminate 1.1s infinite;
+  animation: indeterminate 1.4s var(--ease-standard) infinite;
 }
 
+/* Material's indeterminate bar: a bar that grows as it crosses. */
 @keyframes indeterminate {
-  from {
+  0% {
     left: -40%;
+    width: 20%;
   }
-  to {
+  60% {
+    width: 55%;
+  }
+  100% {
     left: 100%;
+    width: 30%;
+  }
+}
+
+/* Something that has just appeared in place: a badge, an icon, a dot. */
+@keyframes pop-in {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.15);
   }
 }

@@ -7,7 +7,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, type DeckList, type DeckNode, type Me } from '../api'
 import { navigate } from '../router'
 import { sync, useSync } from '../sync'
-import { AppBar, attempt, IconButton, Menu, prompt, toast, useLongPress, useMenu, type MenuItem } from '../ui/components'
+import { afterExit } from '../ui/motion'
+import { AppBar, attempt, IconButton, Menu, overlayOpen, prompt, toast, useLongPress, useMenu, type MenuItem } from '../ui/components'
 import { Icon } from '../ui/icons'
 import { InstallNote } from '../install/InstallGuide'
 import { collectionTools } from './tools'
@@ -15,12 +16,23 @@ import { deckActions } from './deckActions'
 import { exportDialog } from './ImportExport'
 import './deckpicker.css'
 
+/** The list comes in row by row the first time it is shown, not on every return to it. */
+let listShown = false
+
+/** A deck's subdecks, all the way down. */
+function descendants(deck: DeckNode): number[] {
+  return deck.children.flatMap((c) => [c.id, ...descendants(c)])
+}
+
 export default function DeckPicker({ onMenu }: { onMenu: () => void; me: Me }) {
   const [data, setData] = useState<DeckList | null>(null)
   const [error, setError] = useState('')
   const [fabOpen, setFabOpen] = useState(false)
   const [search, setSearch] = useState<string | null>(null)
   const [menu, setMenu] = useState<{ deck: DeckNode; at: { x: number; y: number } } | null>(null)
+  // Rows moving because a deck was expanded or collapsed.
+  const [moving, setMoving] = useState<{ ids: Set<number>; dir: 'in' | 'out' } | null>(null)
+  const [intro] = useState(() => !listShown)
   const { syncing, state, generation } = useSync()
 
   const load = useCallback(async () => {
@@ -73,9 +85,20 @@ export default function DeckPicker({ onMenu }: { onMenu: () => void; me: Me }) {
   }, [data, search])
 
   const toggle = async (deck: DeckNode) => {
+    const ids = new Set(descendants(deck))
+    if (!deck.collapsed) {
+      // Collapsing: the subdecks fold away first.
+      setMoving({ ids, dir: 'out' })
+      await new Promise<void>((r) => afterExit(r, 140))
+    }
     await attempt(() => api.post(`/api/decks/${deck.id}/collapse`, { collapsed: !deck.collapsed }))
-    void load()
+    setMoving(deck.collapsed ? { ids, dir: 'in' } : null)
+    await load()
   }
+
+  useEffect(() => {
+    if (data) listShown = true
+  }, [data])
 
   const open = (deck: DeckNode, toOverview = false) => {
     const due = deck.new + deck.learn + deck.review
@@ -91,7 +114,7 @@ export default function DeckPicker({ onMenu }: { onMenu: () => void; me: Me }) {
     const key = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
-      if (document.querySelector('.dialog, .menu')) return
+      if (overlayOpen()) return
       const k = e.key
       const ctrl = e.ctrlKey || e.metaKey
       if (ctrl && e.shiftKey && k.toLowerCase() === 'i') navigate('/import-export')
@@ -141,9 +164,16 @@ export default function DeckPicker({ onMenu }: { onMenu: () => void; me: Me }) {
         {error && !data && <div className="center-message">{error}</div>}
         {!data && !error && <div className="spinner" />}
         {data && data.cardCount === 0 && rows.length <= 1 && !search && <EmptyCollection />}
-        {rows.map((deck) => (
+        {rows.map((deck, i) => (
           <DeckRow
             key={deck.id}
+            motion={
+              moving?.ids.has(deck.id)
+                ? { cls: `row-${moving.dir}`, delay: moving.dir === 'in' ? 20 * [...moving.ids].indexOf(deck.id) : 0 }
+                : intro && !search
+                  ? { cls: 'row-in', delay: Math.min(i, 12) * 30 }
+                  : undefined
+            }
             deck={deck}
             current={deck.id === data?.current}
             searching={!!search}
@@ -198,6 +228,7 @@ function Count({ n, kind }: { n: number; kind: 'new' | 'learn' | 'review' }) {
 
 function DeckRow({
   deck,
+  motion,
   current,
   searching,
   fullName,
@@ -206,6 +237,7 @@ function DeckRow({
   onMenu,
 }: {
   deck: DeckNode
+  motion?: { cls: string; delay: number }
   current: boolean
   searching: boolean
   fullName?: string
@@ -217,8 +249,8 @@ function DeckRow({
   const hasChildren = deck.children.length > 0
   return (
     <div
-      className={`deck-row${current ? ' current' : ''}`}
-      style={{ paddingLeft: searching ? 8 : 8 + (deck.level - 1) * 14 }}
+      className={`deck-row${current ? ' current' : ''}${motion ? ` ${motion.cls}` : ''}`}
+      style={{ paddingLeft: searching ? 8 : 8 + (deck.level - 1) * 14, animationDelay: motion?.delay ? `${motion.delay}ms` : undefined }}
       {...press.handlers}
     >
       <button
@@ -230,7 +262,7 @@ function DeckRow({
           onToggle()
         }}
       >
-        <Icon name={deck.collapsed ? 'chevronRight' : 'expandMore'} />
+        <Icon name="expandMore" className={deck.collapsed ? 'collapsed' : undefined} />
       </button>
       <button
         className={`deck-name${deck.filtered ? ' filtered' : ''}`}
@@ -283,8 +315,13 @@ function Fab({ open, setOpen, reload }: { open: boolean; setOpen: (v: boolean) =
         <>
           <div className="scrim" onClick={() => setOpen(false)} />
           <div className="fab-menu">
-            {items.map((i) => (
-              <button key={i.label} className="fab-mini-row" onClick={run(i.onClick)}>
+            {items.map((i, n) => (
+              <button
+                key={i.label}
+                className="fab-mini-row"
+                style={{ animationDelay: `${(items.length - 1 - n) * 35}ms` }}
+                onClick={run(i.onClick)}
+              >
                 <span className="label">{i.label}</span>
                 <span className="mini">
                   <Icon name={i.icon} />
@@ -315,6 +352,7 @@ function Fab({ open, setOpen, reload }: { open: boolean; setOpen: (v: boolean) =
 function PullToSync({ onSync }: { onSync: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
   const [pull, setPull] = useState(0)
+  const [dragging, setDragging] = useState(false)
   useEffect(() => {
     const list = ref.current?.parentElement
     if (!list) return
@@ -323,6 +361,7 @@ function PullToSync({ onSync }: { onSync: () => void }) {
     const down = (e: TouchEvent) => {
       startY = list.scrollTop <= 0 ? e.touches[0].clientY : null
       dist = 0
+      setDragging(startY !== null)
     }
     const move = (e: TouchEvent) => {
       if (startY === null) return
@@ -332,6 +371,7 @@ function PullToSync({ onSync }: { onSync: () => void }) {
     const up = () => {
       if (startY !== null && dist > 90) onSync()
       startY = null
+      setDragging(false)
       setPull(0)
     }
     list.addEventListener('touchstart', down, { passive: true })
@@ -344,8 +384,10 @@ function PullToSync({ onSync }: { onSync: () => void }) {
     }
   }, [onSync])
   return (
-    <div ref={ref} className="pull-to-sync" style={{ height: pull * 0.6, opacity: pull / 90 }}>
-      {pull > 0 && <Icon name="sync" style={{ transform: `rotate(${pull * 3}deg)` }} />}
+    <div ref={ref} className={`pull-to-sync${dragging ? '' : ' settling'}`} style={{ height: pull * 0.6, opacity: Math.min(1, pull / 90) }}>
+      <span className={`pull-disc${pull > 90 ? ' armed' : ''}`} style={{ transform: `rotate(${pull * 3}deg) scale(${Math.min(1, pull / 60)})` }}>
+        <Icon name="sync" />
+      </span>
     </div>
   )
 }

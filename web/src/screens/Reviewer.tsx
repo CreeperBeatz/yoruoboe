@@ -11,7 +11,7 @@ import { api, type UndoInfo } from '../api'
 import { playAv, stopAudio, unlockAudio, type AvTag } from '../audio'
 import { getPrefs, usePrefs, type GestureAction } from '../prefs'
 import { goBack, navigate } from '../router'
-import { AppBar, attempt, confirm, IconButton, Menu, toast, useMenu, type MenuItem } from '../ui/components'
+import { AppBar, attempt, confirm, IconButton, Menu, overlayOpen, toast, useMenu, type MenuItem } from '../ui/components'
 import { editNoteTags, FLAG_COLORS, forgetCards, getFlagNames, setDueDate } from '../ui/dialogs'
 import { Icon } from '../ui/icons'
 import { CardView, type CardViewHandle, type FrameEvent } from './CardView'
@@ -235,6 +235,7 @@ export default function Reviewer() {
       setBusy(true)
       window.clearTimeout(autoTimer.current)
       stopAudio()
+      view.current?.leave()
       try {
         // The deck's custom scheduling must have had its say first.
         if (mutation.current) await mutation.current
@@ -548,7 +549,7 @@ export default function Reviewer() {
     const handler = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
-      if (document.querySelector('.dialog, .menu')) return
+      if (overlayOpen()) return
       onKey({ key: e.key, ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey, alt: e.altKey })
       if ([' ', 'Enter'].includes(e.key)) e.preventDefault()
     }
@@ -716,7 +717,7 @@ export default function Reviewer() {
             </div>
           )}
           <div className="answer-indicator">
-            {lastEase && <span className={`dot ease${lastEase}`} title={EASE_NAMES[lastEase - 1]} />}
+            {lastEase && <span key={session.current.cards} className={`dot ease${lastEase}`} title={EASE_NAMES[lastEase - 1]} />}
           </div>
           {card?.marked && <Icon name="star" className="topbar-mark" />}
           {!!card?.flag && <Icon name="flag" className="topbar-flag" style={{ fill: FLAG_COLORS[card.flag] }} />}
@@ -743,8 +744,14 @@ export default function Reviewer() {
               Show Answer
             </button>
           ) : (
-            buttons.map((ease) => (
-              <button key={ease} className={`ease-btn ease${ease}`} onClick={() => void answerCard(ease)} disabled={busy}>
+            buttons.map((ease, i) => (
+              <button
+                key={ease}
+                className={`ease-btn ease${ease}`}
+                style={{ animationDelay: `${i * 25}ms` }}
+                onClick={() => void answerCard(ease)}
+                disabled={busy}
+              >
                 {state?.showIntervals !== false && prefs.showIntervalsOnButtons && <span className="ivl">{labels[ease - 1]}</span>}
                 <span className="name">{EASE_NAMES[ease - 1]}</span>
               </button>

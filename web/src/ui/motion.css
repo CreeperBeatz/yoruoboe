@@ -1,0 +1,150 @@
+/* Screen transitions and the touch ripple (motion.tsx). */
+
+:root {
+  /* Material's standard and emphasized curves; iOS-like for screens sliding. */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --ease-slide: cubic-bezier(0.32, 0.72, 0, 1);
+  --route-ms: 340ms;
+}
+
+/* ---- screens ---------------------------------------------------------------------- */
+
+.route {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+}
+
+/* Pushed: the new screen slides in over the old, which drifts left under a shade. */
+.route-enter-forward {
+  z-index: 2;
+  animation: route-in-right var(--route-ms) var(--ease-slide);
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.12);
+}
+
+.route-exit-forward {
+  z-index: 1;
+  animation: route-out-left var(--route-ms) var(--ease-slide) forwards;
+}
+
+/* Popped: the old screen slides away to the right, showing the one below. */
+.route-enter-back {
+  z-index: 1;
+  animation: route-in-left var(--route-ms) var(--ease-slide);
+}
+
+.route-exit-back {
+  z-index: 2;
+  animation: route-out-right var(--route-ms) var(--ease-slide) forwards;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.12);
+}
+
+.route-exit-forward::after,
+.route-enter-back::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #000;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.route-exit-forward::after {
+  animation: shade-in var(--route-ms) var(--ease-slide) forwards;
+}
+
+.route-enter-back::after {
+  animation: shade-out var(--route-ms) var(--ease-slide) forwards;
+}
+
+/* Replaced in place (finishing a deck, signing in): a quick fade. */
+.route-enter-none {
+  animation: fade-in 0.18s var(--ease-decelerate);
+}
+
+@keyframes route-in-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes route-out-left {
+  to {
+    transform: translateX(-28%);
+  }
+}
+
+@keyframes route-in-left {
+  from {
+    transform: translateX(-28%);
+  }
+}
+
+@keyframes route-out-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes shade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.12;
+  }
+}
+
+@keyframes shade-out {
+  from {
+    opacity: 0.12;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* ---- ripple ----------------------------------------------------------------------- */
+
+:where(.icon-btn, .menu-item, .text-btn, .btn, .deck-name, .deck-counts, .ease-btn, .show-answer, .fab, .drawer-item,
+  .settings-row:not(.static), .browser-row, .list-row, .tab, .bottom-tabs button, .ripple-host) {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.14;
+  transform: scale(0);
+  animation: ripple-grow 0.42s var(--ease-standard) forwards;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.ripple.out {
+  opacity: 0;
+  transition: opacity 0.3s linear;
+}
+
+@keyframes ripple-grow {
+  to {
+    transform: scale(1);
+  }
+}
+
+/* ---- Reduce Motion ---------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+  }
+}

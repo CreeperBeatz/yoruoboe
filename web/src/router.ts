@@ -5,30 +5,41 @@
 
 import { useSyncExternalStore } from 'react'
 
+/** Which way the last navigation went: a screen pushed, popped, or replaced in place. */
+export type NavDir = 'forward' | 'back' | 'none'
+
 export interface Location {
   path: string
   query: URLSearchParams
+  dir: NavDir
 }
 
 const listeners = new Set<() => void>()
-let current: Location = read()
+let current: Location = read('none')
+let lastDepth = depth()
 
-function read(): Location {
-  return { path: window.location.pathname, query: new URLSearchParams(window.location.search) }
+function read(dir: NavDir): Location {
+  return { path: window.location.pathname, query: new URLSearchParams(window.location.search), dir }
 }
 
-function emit() {
-  current = read()
+function emit(dir: NavDir) {
+  lastDepth = depth()
+  current = read(dir)
   listeners.forEach((fn) => fn())
 }
 
-window.addEventListener('popstate', emit)
+window.addEventListener('popstate', (e) => {
+  const d = depth()
+  // Safari's edge swipe has already animated the page; don't animate it twice.
+  const swiped = (e as PopStateEvent & { hasUAVisualTransition?: boolean }).hasUAVisualTransition
+  emit(swiped ? 'none' : d < lastDepth ? 'back' : d > lastDepth ? 'forward' : 'none')
+})
 
 export function navigate(to: string, { replace = false } = {}) {
   if (to === window.location.pathname + window.location.search) return
   if (replace) window.history.replaceState({ depth: depth() }, '', to)
   else window.history.pushState({ depth: depth() + 1 }, '', to)
-  emit()
+  emit(replace ? 'none' : 'forward')
 }
 
 function depth(): number {

@@ -73,7 +73,7 @@
   border-radius: 11px;
   background: var(--divider);
   flex-shrink: 0;
-  transition: background 0.15s;
+  transition: background 0.2s var(--ease-standard);
 }
 
 .switch::after {
@@ -86,7 +86,7 @@
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  transition: transform 0.15s;
+  transition: transform 0.25s var(--ease-standard);
 }
 
 .switch.on {
