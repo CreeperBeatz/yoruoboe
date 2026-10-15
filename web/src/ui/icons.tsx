@@ -1,4 +1,4 @@
-/** Material icons (Apache 2.0), the set AnkiDroid draws with, as inline SVG paths. */
+/** Material icons (Apache 2.0), the set AnkiDroid draws with, as inline SVG paths; SF Symbols-like lines for the most-seen ones (LINES). */
 
 const PATHS = {
   menu: 'M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z',
@@ -56,10 +56,41 @@ const PATHS = {
 
 export type IconName = keyof typeof PATHS
 
+/**
+ * The iOS look's line icons, drawn after SF Symbols, in place of the Material ones for
+ * the icons seen most: [path, stroke width]. Stroked in the text's colour.
+ */
+const LINES: Partial<Record<IconName, [string, number]>> = {
+  back: ['M15 4.5 7.5 12l7.5 7.5', 2.2],
+  chevronRight: ['M9.5 5.5 16 12l-6.5 6.5', 2],
+  expandMore: ['M5.5 9 12 15.5 18.5 9', 2],
+  close: ['M6.5 6.5l11 11M17.5 6.5l-11 11', 2],
+  add: ['M12 4.5v15M4.5 12h15', 2],
+  check: ['M5 12.5l4.5 4.5L19 7', 2.2],
+  search: ['M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 1 0 0-13zM15.4 15.4 20 20', 2],
+  more: ['M5.5 12h.01M12 12h.01M18.5 12h.01', 3.4],
+  sync: ['M19 12a7 7 0 0 1-12.2 4.7M5 12a7 7 0 0 1 12.2-4.7M17.5 3.5v4h-4M6.5 20.5v-4h4', 1.9],
+  undo: ['M8.5 13.5 4 9l4.5-4.5M4 9h10.5a5.5 5.5 0 0 1 0 11H11', 1.9],
+  redo: ['M15.5 13.5 20 9l-4.5-4.5M20 9H9.5a5.5 5.5 0 0 0 0 11H13', 1.9],
+  edit: ['M4.5 19.5l1-4L16 5a2.1 2.1 0 0 1 3 3L8.5 18.5l-4 1zM14 7l3 3', 1.8],
+  delete: ['M4.5 6.5h15M9.5 6.5v-2h5v2M6.5 6.5l1 13h9l1-13M10 10.5v5.5M14 10.5v5.5', 1.8],
+  stats: ['M6 19.5v-6M12 19.5v-15M18 19.5v-10', 3],
+  decks: ['M7.5 3.5h9M5.5 6.5h13M5.5 9.5h13a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z', 1.8],
+  info: ['M12 3a9 9 0 1 0 0 18 9 9 0 1 0 0-18zM12 11v5.5M12 7.5h.01', 1.8],
+  help: ['M12 3a9 9 0 1 0 0 18 9 9 0 1 0 0-18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01', 1.8],
+  download: ['M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14', 1.9],
+  upload: ['M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19.5h14', 1.9],
+}
+
 export function Icon({ name, size, style, className }: { name: IconName; size?: number; style?: React.CSSProperties; className?: string }) {
+  const line = LINES[name]
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} style={style} className={className} aria-hidden="true">
-      <path d={PATHS[name]} />
+      {line ? (
+        <path d={line[0]} fill="none" stroke="currentColor" strokeWidth={line[1]} strokeLinecap="round" strokeLinejoin="round" />
+      ) : (
+        <path d={PATHS[name]} />
+      )}
     </svg>
   )
 }

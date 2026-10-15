@@ -5,6 +5,7 @@ import { match, navigate, useLocation } from './router'
 import { setSyncState, startAutoSync, sync } from './sync'
 import { DialogHost, SnackbarHost } from './ui/components'
 import { Drawer } from './ui/Drawer'
+import { TabBar } from './ui/TabBar'
 import { RouteTransition } from './ui/motion'
 import { InstallGuide } from './install/InstallGuide'
 import DeckPicker from './screens/DeckPicker'
@@ -162,8 +163,8 @@ export default function App() {
   else if (match('/note/add', path)) screen = <NoteEditor mode="add" query={loc.query} />
   else if ((params = match('/note/:id', path))) screen = <NoteEditor mode="edit" noteId={Number(params.id)} query={loc.query} />
   else if ((params = match('/preview', path))) screen = <Previewer query={loc.query} />
-  else if ((params = match('/settings/*', path))) screen = <Settings section={params['*']} me={me} />
   else if (match('/settings', path)) screen = <Settings section="" me={me} onMenu={openDrawer} />
+  else if ((params = match('/settings/*', path))) screen = <Settings section={params['*']} me={me} />
   else if (match('/notetypes', path)) screen = <Notetypes />
   else if ((params = match('/notetypes/:id/fields', path))) screen = <FieldsEditor notetypeId={Number(params.id)} />
   else if ((params = match('/notetypes/:id/templates', path))) screen = <CardTemplateEditor notetypeId={Number(params.id)} query={loc.query} />
@@ -176,6 +177,7 @@ export default function App() {
       <RouteTransition routeKey={path} dir={loc.dir}>
         <Suspense fallback={<div className="spinner" />}>{screen}</Suspense>
       </RouteTransition>
+      <TabBar path={path} />
       {drawer && <Drawer me={me} onClose={() => setDrawer(false)} />}
       <DialogHost />
       <SnackbarHost />

@@ -24,16 +24,17 @@ export function AppBar({
   onNav?: () => void
   children?: ReactNode
 }) {
+  // The tab bar (TabBar.tsx) takes the drawer's place: a screen it leads to has a large
+  // title and no menu button. Its buttons sit together in one glass capsule (ios.css).
+  const root = nav === 'menu'
   return (
-    <header className="app-bar">
-      {nav && (
-        <IconButton icon={nav === 'back' ? 'back' : nav === 'menu' ? 'menu' : 'close'} label={nav} onClick={onNav} />
-      )}
+    <header className={`app-bar${root ? ' root' : ''}${typeof title === 'string' ? '' : ' custom'}`}>
+      {nav && !root && <IconButton icon={nav === 'back' ? 'back' : 'close'} label={nav} onClick={onNav} />}
       <div className="app-bar-title">
         <h1>{title}</h1>
         {subtitle && <div className="subtitle">{subtitle}</div>}
       </div>
-      {children}
+      <div className="bar-actions">{children}</div>
     </header>
   )
 }
@@ -169,7 +170,7 @@ export function Menu({
                 {item.icon && <Icon name={item.icon} style={item.color ? { fill: item.color } : undefined} />}
                 <span>{item.label}</span>
                 {item.checked && <Icon name="check" className="check" />}
-                {item.submenu && <Icon name="chevronRight" className="check" />}
+                {item.submenu && <Icon name="chevronRight" className="check submenu" />}
               </button>
             ),
           )}

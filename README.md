@@ -16,11 +16,13 @@ It is Anki itself rather than a re-implementation:
 - **Cards** are rendered by Anki's `reviewer.js`, as on desktop.
 - **The rest** is AnkiDroid's layout and behaviour, rebuilt in React: deck list, study
   screen, browser, note types, settings, dialogs. `docs/ankidroid-parity.md` is the
-  checklist it was built from, read out of AnkiDroid's source. It comes with AnkiDroid's
-  font, Roboto (SIL Open Font License, `@fontsource-variable/roboto`), and moves like it:
-  screens slide over each other, cards slide in, menus and dialogs grow from where they
-  were opened, buttons ripple (`web/src/ui/motion.tsx`). The phone's Reduce Motion
-  setting turns all of it off.
+  checklist it was built from, read out of AnkiDroid's source.
+- **It looks like iOS 27** (`web/src/ios/ios.css`, over AnkiDroid's layout): Liquid
+  Glass bars and buttons floating over the content, which get a backing once a list
+  scrolls under them; a tab bar in place of AnkiDroid's drawer (`web/src/ui/TabBar.tsx`);
+  large titles, inset grouped lists, iOS alerts and menus, the system font and colours,
+  and line icons after SF Symbols. Screens slide over each other as on iOS; the phone's
+  Reduce Motion and Reduce Transparency settings are followed.
 
 ## How it fits together
 
