@@ -203,6 +203,9 @@ def main() -> None:
     Handler.target = args.sync_target
     if not (Handler.dist / "index.html").is_file():
         sys.exit(f"{Handler.dist} has no index.html: build the app first (see README)")
+    # Anki's pages load dozens of scripts at once, and a tunnel (ngrok) opens a
+    # connection for each: the default queue of 5 refuses the rest.
+    ThreadingHTTPServer.request_queue_size = 128
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     where = args.sync_target or "AnkiWeb"
     print(f"serving {Handler.dist} on http://{args.host}:{args.port}/, sync -> {where}", flush=True)
