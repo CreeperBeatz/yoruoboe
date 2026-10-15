@@ -9,7 +9,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type UndoInfo } from '../api'
 import { playAv, stopAudio, unlockAudio, type AvTag } from '../audio'
-import { startFlip } from '../ios/flip'
 import { getPrefs, usePrefs, type GestureAction } from '../prefs'
 import { goBack, navigate } from '../router'
 import { AppBar, attempt, confirm, IconButton, Menu, overlayOpen, toast, useMenu, type MenuItem } from '../ui/components'
@@ -78,9 +77,6 @@ const EASE_NAMES = ['Again', 'Hard', 'Good', 'Easy']
 export default function Reviewer() {
   const prefs = usePrefs()
   const view = useRef<CardViewHandle>(null)
-  const cardArea = useRef<HTMLDivElement>(null)
-  // Resolved when the frame has drawn the answer (the card turns face up then).
-  const answerDrawn = useRef<(() => void) | null>(null)
   const board = useRef<WhiteboardHandle>(null)
   const [state, setState] = useState<Next | null>(null)
   const [side, setSide] = useState<'question' | 'answer'>('question')
@@ -215,23 +211,16 @@ export default function Reviewer() {
     answerPressed.current = Date.now()
     window.clearTimeout(autoTimer.current)
     const typed = s.card.hasTypeAnswer ? await view.current!.typedAnswer() : ''
-    // The card starts turning over at once; its answer goes on while it is edge-on.
-    const flip = startFlip(cardArea.current)
     let res: AnswerSide
     try {
       res = await api.post<AnswerSide>('/api/review/answer-side', { cardId: s.card.id, typed })
     } catch (e) {
-      flip.cancel()
       toast(e instanceof Error ? e.message : String(e))
       return void load()
     }
     setAnswer(res)
     setSide('answer')
-    await flip.turn(() => {
-      const drawn = new Promise<void>((r) => (answerDrawn.current = r))
-      view.current?.showAnswer(res.answer, s.card!.bodyClass)
-      return drawn
-    })
+    view.current?.showAnswer(res.answer, s.card.bodyClass)
     const played = s.deckConf?.autoplay && getPrefs().autoPlayAudio ? playQ(res.answerAv) : Promise.resolve()
     scheduleAuto('answer', played)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -574,9 +563,6 @@ export default function Reviewer() {
     (e: FrameEvent) => {
       const p = getPrefs()
       switch (e.type) {
-        case 'shown':
-          if (e.side === 'answer') answerDrawn.current?.()
-          return
         case 'bridge':
           if (e.cmd === 'ans') return void showAnswer()
           if (/^ease[1-4]$/.test(e.cmd)) return void answerCard(Number(e.cmd.slice(4)))
@@ -739,7 +725,7 @@ export default function Reviewer() {
           {conf?.showTimer && card && <Timer key={card.id} limit={conf.maxTakenSecs} stopped={side === 'answer' && conf.stopTimerOnAnswer} />}
         </div>
       )}
-      <div className="card-area" ref={cardArea}>
+      <div className="card-area">
         <CardView
           ref={view}
           className="card-frame"
