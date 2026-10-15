@@ -9,7 +9,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type UndoInfo } from '../api'
 import { playAv, stopAudio, unlockAudio, type AvTag } from '../audio'
-import { getPrefs, usePrefs, type GestureAction } from '../prefs'
+import { useCardSwipe, type SwipeDir, type SwipeIntent } from '../ios/cardSwipe'
+import { GESTURE_ACTIONS, getPrefs, usePrefs, type GestureAction } from '../prefs'
 import { goBack, navigate } from '../router'
 import { AppBar, attempt, confirm, IconButton, Menu, overlayOpen, toast, useMenu, type MenuItem } from '../ui/components'
 import { editNoteTags, FLAG_COLORS, forgetCards, getFlagNames, setDueDate } from '../ui/dialogs'
@@ -73,6 +74,15 @@ interface AnswerSide {
 }
 
 const EASE_NAMES = ['Again', 'Hard', 'Good', 'Easy']
+const EASE_COLORS = ['again', 'hard', 'good', 'easy']
+const SWIPES: SwipeDir[] = ['Left', 'Right', 'Up', 'Down']
+const SHOW_ANSWER: SwipeIntent = { label: 'Show answer', color: 'var(--primary)', then: 'stay' }
+
+/** The way the card leaves for an answer: the swipe that gives it, or left. */
+function swipeFor(ease: number): SwipeDir {
+  const g = getPrefs().gestures
+  return SWIPES.find((d) => [`flipOrAnswer${ease}`, `answer${ease}`].includes(g[`swipe${d}`])) ?? 'Left'
+}
 
 export default function Reviewer() {
   const prefs = usePrefs()
@@ -201,6 +211,26 @@ export default function Reviewer() {
   const autoAdvanceRef = useRef(autoAdvance)
   autoAdvanceRef.current = autoAdvance
 
+  // ---- the card in the hand (swipes) -------------------------------------------------------
+
+  /** What letting go of the card that way would do, said on the card while it's dragged. */
+  const swipeIntent = (dir: SwipeDir): SwipeIntent | null => {
+    const p = getPrefs()
+    const action = p.gestures[`swipe${dir}`]
+    const question = sideRef.current === 'question'
+    const m = /^(flipOrAnswer|answer)([1-4])$/.exec(action)
+    if (m) {
+      if (question) return m[1] === 'flipOrAnswer' ? SHOW_ANSWER : null
+      const n = Number(m[2])
+      const ivl = stateRef.current?.showIntervals !== false ? answerRef.current?.labels[n - 1] : ''
+      return { label: ivl ? `${EASE_NAMES[n - 1]} · ${ivl}` : EASE_NAMES[n - 1], color: `var(--${EASE_COLORS[n - 1]}-text)`, then: 'leave' }
+    }
+    if (action === 'none') return null
+    if (action === 'showAnswer') return question ? SHOW_ANSWER : null
+    return { label: GESTURE_ACTIONS.find((a) => a.value === action)?.label ?? action, color: 'var(--text)', then: 'stay' }
+  }
+  const swipe = useCardSwipe(swipeIntent, () => getPrefs().swipeSensitivity)
+
   // ---- show answer, answer ----------------------------------------------------------------
 
   const showAnswer = useCallback(async () => {
@@ -232,6 +262,7 @@ export default function Reviewer() {
       if (!s?.card || sideRef.current !== 'answer' || busy) return
       if (Date.now() - answerPressed.current < getPrefs().doubleTapTimeInterval) return
       answerPressed.current = Date.now()
+      swipe.leave(swipeFor(ease))
       setBusy(true)
       window.clearTimeout(autoTimer.current)
       stopAudio()
@@ -563,6 +594,15 @@ export default function Reviewer() {
     (e: FrameEvent) => {
       const p = getPrefs()
       switch (e.type) {
+        case 'drag':
+          return swipe.drag(e.dx, e.dy)
+        case 'drop': {
+          const dir = swipe.drop(e.dx, e.dy, e.vx, e.vy)
+          return void (dir && runAction(p.gestures[`swipe${dir}`]))
+        }
+        case 'shown':
+          // The next card is drawn: it comes up where the last one went from.
+          return void (e.side === 'question' && swipe.arrive())
         case 'bridge':
           if (e.cmd === 'ans') return void showAnswer()
           if (/^ease[1-4]$/.test(e.cmd)) return void answerCard(Number(e.cmd.slice(4)))
@@ -725,7 +765,8 @@ export default function Reviewer() {
           {conf?.showTimer && card && <Timer key={card.id} limit={conf.maxTakenSecs} stopped={side === 'answer' && conf.stopTimerOnAnswer} />}
         </div>
       )}
-      <div className="card-area">
+      <div className="card-area" ref={swipe.card}>
+        <div className="swipe-tint" ref={swipe.tint} />
         <CardView
           ref={view}
           className="card-frame"
@@ -733,7 +774,9 @@ export default function Reviewer() {
           onReady={() => setFrameReady(true)}
           gestures={prefs.gesturesEnabled}
           doubleTap={prefs.gesturesEnabled && prefs.gestures.doubleTap !== 'none'}
+          dragCard={prefs.gesturesEnabled}
         />
+        <div className="swipe-badge" ref={swipe.badge} />
         {whiteboard && <Whiteboard ref={board} onClose={() => setWhiteboard(false)} />}
         {!state && <div className="spinner card-spinner" />}
       </div>

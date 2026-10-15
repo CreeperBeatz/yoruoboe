@@ -968,17 +968,78 @@
   text-decoration-thickness: 2px;
 }
 
-/* The card: a rounded sheet between the bar and the buttons. */
+/* The card: a slab of glass holding the card's page, with an edge that catches the light
+   and a shadow under it, so that it reads as a thing that can be picked up and thrown
+   (cardSwipe.ts). */
 :root .card-area {
-  margin: 0 max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
-  border-radius: 28px;
+  --rim: 7px;
+  margin: 2px max(14px, env(safe-area-inset-right)) 0 max(14px, env(safe-area-inset-left));
+  border-radius: 36px;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow:
+    0 14px 40px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.06),
+    0 0 0 0.5px var(--glass-rim),
+    inset 1px 1px 0 var(--glass-shine),
+    inset -0.5px -0.5px 0 var(--glass-shine);
+  transform-origin: 50% 120%;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+:root .card-area > :is(.card-frame, .whiteboard, .swipe-tint) {
+  inset: var(--rim);
+  width: calc(100% - 2 * var(--rim));
+  height: calc(100% - 2 * var(--rim));
+  border-radius: calc(36px - var(--rim));
   overflow: hidden;
-  background: var(--surface);
-  box-shadow: 0 0 0 0.5px var(--divider);
+}
+
+:root .card-area > .card-frame {
+  box-shadow: 0 0 0 0.5px var(--glass-rim);
 }
 
 :root .screen:not(:has(> .app-bar, > .review-topbar)) > .card-area {
   margin-top: max(10px, env(safe-area-inset-top));
+}
+
+/* Dragged: the card takes the colour of what letting go will do, and says it. */
+:root .swipe-tint {
+  position: absolute;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+}
+
+:root .swipe-badge {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  padding: 12px 26px;
+  border-radius: 999px;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(20px) saturate(190%);
+  backdrop-filter: blur(20px) saturate(190%);
+  box-shadow:
+    var(--shadow),
+    0 0 0 0.5px var(--glass-rim);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.9);
+  transition: transform 0.25s var(--spring);
+}
+
+/* Past the line: letting go now does it. */
+:root .swipe-badge.armed {
+  transform: translate(-50%, -50%) scale(1.1);
 }
 
 /* Show Answer and the answer buttons: one glass bar floating under the card, as an iOS

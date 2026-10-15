@@ -21,8 +21,11 @@ It is Anki itself rather than a re-implementation:
   Glass bars and buttons floating over the content, which get a backing once a list
   scrolls under them; a tab bar in place of AnkiDroid's drawer (`web/src/ui/TabBar.tsx`);
   large titles, inset grouped lists, iOS alerts and menus, the system font and colours,
-  and line icons after SF Symbols. The answers are one glass bar under the
-  card. Screens slide over
+  and line icons after SF Symbols. The card is a slab of glass you can
+  throw, as on Tinder (`web/src/ios/cardSwipe.ts`): it follows the finger, shows what
+  letting go will do (left Again, right Good, up Easy, down Hard; on the question, any
+  way shows the answer), and flies off that way, the next card rising in its place. The
+  answers are also one glass bar under the card. Screens slide over
   each other as on iOS; the phone's
   Reduce Motion and Reduce Transparency settings are followed.
 

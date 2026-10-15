@@ -64,12 +64,60 @@ export interface Prefs {
   hideHardAndEasy: boolean
 }
 
+/** What each action is called, in Settings and on a card being swiped. */
+export const GESTURE_ACTIONS: { value: GestureAction; label: string }[] = [
+  { value: 'none', label: 'No action' },
+  { value: 'showAnswer', label: 'Show answer' },
+  { value: 'flipOrAnswer1', label: 'Show answer / Again' },
+  { value: 'flipOrAnswer2', label: 'Show answer / Hard' },
+  { value: 'flipOrAnswer3', label: 'Show answer / Good' },
+  { value: 'flipOrAnswer4', label: 'Show answer / Easy' },
+  { value: 'answer1', label: 'Answer Again' },
+  { value: 'answer2', label: 'Answer Hard' },
+  { value: 'answer3', label: 'Answer Good' },
+  { value: 'answer4', label: 'Answer Easy' },
+  { value: 'undo', label: 'Undo' },
+  { value: 'redo', label: 'Redo' },
+  { value: 'edit', label: 'Edit note' },
+  { value: 'mark', label: 'Mark note' },
+  { value: 'bury', label: 'Bury card' },
+  { value: 'buryNote', label: 'Bury note' },
+  { value: 'suspend', label: 'Suspend card' },
+  { value: 'suspendNote', label: 'Suspend note' },
+  { value: 'delete', label: 'Delete note' },
+  { value: 'replay', label: 'Replay audio' },
+  { value: 'toggleWhiteboard', label: 'Toggle whiteboard' },
+  { value: 'cardInfo', label: 'Card info' },
+  { value: 'deckOptions', label: 'Deck options' },
+  { value: 'tagsDialog', label: 'Edit tags' },
+  { value: 'setDueDate', label: 'Set due date' },
+  { value: 'resetCard', label: 'Reset card' },
+  { value: 'pageUp', label: 'Page up' },
+  { value: 'pageDown', label: 'Page down' },
+  { value: 'showHint', label: 'Show hint' },
+  { value: 'showAllHints', label: 'Show all hints' },
+  { value: 'toggleAutoAdvance', label: 'Toggle auto advance' },
+  { value: 'flagRed', label: 'Toggle red flag' },
+  { value: 'flagOrange', label: 'Toggle orange flag' },
+  { value: 'flagGreen', label: 'Toggle green flag' },
+  { value: 'flagBlue', label: 'Toggle blue flag' },
+  { value: 'unflag', label: 'Remove flag' },
+  { value: 'browse', label: 'Browse' },
+  { value: 'statistics', label: 'Statistics' },
+  { value: 'exit', label: 'Exit' },
+]
+
+/** AnkiDroid's swipes, before the iOS look's (to move anyone still on them over). */
+const ANKIDROID_SWIPES = { swipeUp: 'edit', swipeDown: 'none', swipeLeft: 'none', swipeRight: 'none' } as const
+
 export const DEFAULT_GESTURES: Record<Gesture, GestureAction> = {
-  // AnkiDroid's defaults (cardviewer/ViewerCommand.kt, Gesture.kt)
-  swipeUp: 'edit',
-  swipeDown: 'none',
-  swipeLeft: 'none',
-  swipeRight: 'none',
+  // AnkiDroid's defaults (cardviewer/ViewerCommand.kt, Gesture.kt), but for the swipes:
+  // the card goes left for Again, right for Good, up for Easy, down for Hard, and any
+  // swipe on the question shows the answer.
+  swipeUp: 'flipOrAnswer4',
+  swipeDown: 'flipOrAnswer2',
+  swipeLeft: 'flipOrAnswer1',
+  swipeRight: 'flipOrAnswer3',
   doubleTap: 'none',
   longPress: 'none',
   tapTopLeft: 'none',
@@ -100,7 +148,7 @@ export const DEFAULTS: Prefs = {
   fullscreen: false,
   keepScreenOn: false,
   doubleTapTimeInterval: 200,
-  gesturesEnabled: false,
+  gesturesEnabled: true,
   gestures: DEFAULT_GESTURES,
   swipeSensitivity: 100,
   autoSync: true,
@@ -124,7 +172,14 @@ const listeners = new Set<() => void>()
 function load(): Prefs {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || '{}')
-    return { ...DEFAULTS, ...raw, gestures: { ...DEFAULT_GESTURES, ...(raw.gestures || {}) } }
+    // Saved with AnkiDroid's swipes, never changed: the iOS look's swipes, switched on.
+    const g = raw.gestures
+    if (g && Object.entries(ANKIDROID_SWIPES).every(([k, v]) => g[k] === v) && !raw.swipesMoved) {
+      for (const k of Object.keys(ANKIDROID_SWIPES) as Gesture[]) g[k] = DEFAULT_GESTURES[k]
+      raw.gesturesEnabled = true
+      raw.swipesMoved = true
+    }
+    return { ...DEFAULTS, ...raw, gestures: { ...DEFAULT_GESTURES, ...(g || {}) } }
   } catch {
     return DEFAULTS
   }

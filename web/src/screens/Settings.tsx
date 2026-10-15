@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { api, type Me } from '../api'
-import { DEFAULT_GESTURES, resetPrefs, setPrefs, usePrefs, type Gesture, type GestureAction, type Prefs } from '../prefs'
+import { DEFAULT_GESTURES, GESTURE_ACTIONS, resetPrefs, setPrefs, usePrefs, type Gesture, type Prefs } from '../prefs'
 import { goBack, navigate } from '../router'
 import { sync, useSync } from '../sync'
 import { storage } from '../local/col'
@@ -376,47 +376,6 @@ function Appearance() {
   )
 }
 
-const ACTIONS: { value: GestureAction; label: string }[] = [
-  { value: 'none', label: 'No action' },
-  { value: 'showAnswer', label: 'Show answer' },
-  { value: 'flipOrAnswer1', label: 'Show answer / Again' },
-  { value: 'flipOrAnswer2', label: 'Show answer / Hard' },
-  { value: 'flipOrAnswer3', label: 'Show answer / Good' },
-  { value: 'flipOrAnswer4', label: 'Show answer / Easy' },
-  { value: 'answer1', label: 'Answer Again' },
-  { value: 'answer2', label: 'Answer Hard' },
-  { value: 'answer3', label: 'Answer Good' },
-  { value: 'answer4', label: 'Answer Easy' },
-  { value: 'undo', label: 'Undo' },
-  { value: 'redo', label: 'Redo' },
-  { value: 'edit', label: 'Edit note' },
-  { value: 'mark', label: 'Mark note' },
-  { value: 'bury', label: 'Bury card' },
-  { value: 'buryNote', label: 'Bury note' },
-  { value: 'suspend', label: 'Suspend card' },
-  { value: 'suspendNote', label: 'Suspend note' },
-  { value: 'delete', label: 'Delete note' },
-  { value: 'replay', label: 'Replay audio' },
-  { value: 'toggleWhiteboard', label: 'Toggle whiteboard' },
-  { value: 'cardInfo', label: 'Card info' },
-  { value: 'deckOptions', label: 'Deck options' },
-  { value: 'tagsDialog', label: 'Edit tags' },
-  { value: 'setDueDate', label: 'Set due date' },
-  { value: 'resetCard', label: 'Reset card' },
-  { value: 'pageUp', label: 'Page up' },
-  { value: 'pageDown', label: 'Page down' },
-  { value: 'showHint', label: 'Show hint' },
-  { value: 'showAllHints', label: 'Show all hints' },
-  { value: 'toggleAutoAdvance', label: 'Toggle auto advance' },
-  { value: 'flagRed', label: 'Toggle red flag' },
-  { value: 'flagOrange', label: 'Toggle orange flag' },
-  { value: 'flagGreen', label: 'Toggle green flag' },
-  { value: 'flagBlue', label: 'Toggle blue flag' },
-  { value: 'unflag', label: 'Remove flag' },
-  { value: 'browse', label: 'Browse' },
-  { value: 'statistics', label: 'Statistics' },
-  { value: 'exit', label: 'Exit' },
-]
 
 const GESTURES: { key: Gesture; label: string }[] = [
   { key: 'swipeUp', label: 'Swipe up' },
@@ -469,7 +428,7 @@ function Controls() {
               key={g.key}
               title={g.label + (corner(g.key) ? ' (corner)' : '')}
               value={p.gestures[g.key]}
-              options={ACTIONS}
+              options={GESTURE_ACTIONS}
               onChange={(v) => setPrefs({ gestures: { ...p.gestures, [g.key]: v } })}
             />
           ))}

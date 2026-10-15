@@ -6,7 +6,8 @@
 // backend calls; here the frame asks the app around it (web/src/screens/CardView.tsx),
 // which allows the same few.
 //
-//  app -> frame  {type:'config', night, bodyExtraClass, css, gestures, doubleTapMs, zoom, imageZoom, centerVertically}
+//  app -> frame  {type:'config', night, bodyExtraClass, css, gestures, doubleTapMs, zoom, imageZoom, centerVertically,
+//                 dragCard}
 //                {type:'question', q, a, bodyClass, flag, marked}
 //                {type:'answer', a, bodyClass}
 //                {type:'flag', flag} {type:'mark', marked}
@@ -16,6 +17,7 @@
 //  frame -> app  {type:'ready'} {type:'bridge', cmd} {type:'tap', zone} {type:'swipe', dir}
 //                {type:'double-tap'} {type:'long-press'} {type:'key', ...} {type:'typed', id, value}
 //                {type:'rpc', id, method, body} {type:'shown'}
+//                {type:'drag', dx, dy} {type:'drop', dx, dy, vx, vy}   (with dragCard)
 ;(() => {
   // The app builds this frame as a srcdoc (so it opens offline) and says where it is;
   // loaded by URL, the same comes in the hash.
@@ -112,8 +114,9 @@
   // is drawn, like the next page. Showing the answer doesn't move anything, as in Anki.
   const still = window.matchMedia('(prefers-reduced-motion: reduce)')
   let revealTimer = 0
+  // With dragCard the app moves the whole card instead (web/src/ios/cardSwipe.ts).
   function hideForNewCard() {
-    if (still.matches) return
+    if (still.matches || config.dragCard) return
     const qa = document.getElementById('qa')
     qa.style.opacity = '0'
     // Whatever happens to the card's own scripts, it doesn't stay hidden.
@@ -122,7 +125,7 @@
   }
   // Answered: the card slides away while the next one is fetched.
   function leaveCard() {
-    if (still.matches) return
+    if (still.matches || config.dragCard) return
     const qa = document.getElementById('qa')
     qa.style.transition = 'opacity 0.12s cubic-bezier(0.3, 0, 1, 1), transform 0.12s cubic-bezier(0.3, 0, 1, 1)'
     qa.style.transform = 'translateX(-28px)'
@@ -153,6 +156,8 @@
     if (config.imageZoom && config.imageZoom !== 100) css.push(`#qa img { zoom: ${config.imageZoom}%; }`)
     if (config.centerVertically)
       css.push('html, body { height: 100%; } body { display: flex; flex-direction: column; justify-content: center; } #qa { width: 100%; }')
+    // A drag down at the top moves the card, not the page's bounce.
+    if (config.dragCard) css.push('html, body { overscroll-behavior: none; }')
     if (config.css) css.push(config.css)
     document.getElementById('app').textContent = css.join('\n')
   }
@@ -274,6 +279,9 @@
   }
 
   let start = null
+  /** A drag of the whole card (dragCard): mode '' undecided, 'drag', or 'off' (a scroll). */
+  let drag = null
+  let dragFrame = 0
   let lastTap = null
   let tapTimer = null
   let longTimer = null
@@ -287,6 +295,8 @@
       }
       const t = e.touches[0]
       start = { x: t.clientX, y: t.clientY, time: Date.now(), scrollY: window.scrollY, fired: false }
+      // The card follows the finger in screen coordinates: the frame moves with it.
+      drag = { sx: t.screenX, sy: t.screenY, mode: t.screenX < 24 ? 'off' : '', last: [] }
       clearTimeout(longTimer)
       longTimer = setTimeout(() => {
         if (start && !getSelection().toString()) {
@@ -298,18 +308,57 @@
     { passive: true },
   )
 
+  // Can the card scroll the way a vertical drag would scroll it?
+  function canScroll(dy) {
+    const el = document.scrollingElement || document.documentElement
+    return dy > 0 ? el.scrollTop > 0 : el.scrollTop + window.innerHeight < el.scrollHeight - 1
+  }
+
   document.addEventListener(
     'touchmove',
     (e) => {
       if (!start) return
       const t = e.touches[0]
       if (Math.hypot(t.clientX - start.x, t.clientY - start.y) > 10) clearTimeout(longTimer)
+      if (!config.dragCard || !drag || drag.mode === 'off' || start.fired) return
+      const dx = t.screenX - drag.sx
+      const dy = t.screenY - drag.sy
+      if (!drag.mode) {
+        if (Math.hypot(dx, dy) < 10) return
+        // Sideways always drags the card; up or down only where the card can't scroll.
+        drag.mode = Math.abs(dx) > Math.abs(dy) || !canScroll(dy) ? 'drag' : 'off'
+        if (drag.mode === 'off' || getSelection().toString()) return void (drag.mode = 'off')
+      }
+      e.preventDefault()
+      drag.last.push({ x: dx, y: dy, t: e.timeStamp })
+      if (drag.last.length > 5) drag.last.shift()
+      cancelAnimationFrame(dragFrame)
+      dragFrame = requestAnimationFrame(() => post({ type: 'drag', dx, dy }))
     },
-    { passive: true },
+    { passive: false },
   )
+
+  document.addEventListener('touchcancel', () => {
+    if (drag?.mode === 'drag') post({ type: 'drop', dx: 0, dy: 0, vx: 0, vy: 0 })
+    start = drag = null
+  })
 
   document.addEventListener('touchend', (e) => {
     clearTimeout(longTimer)
+    if (drag?.mode === 'drag') {
+      // Let go: where, and how fast (over the last few moves), for the app to decide.
+      const t = e.changedTouches[0]
+      const dx = t.screenX - drag.sx
+      const dy = t.screenY - drag.sy
+      const a = drag.last[0]
+      const b = drag.last[drag.last.length - 1]
+      const ms = a && b && b.t > a.t ? b.t - a.t : 0
+      cancelAnimationFrame(dragFrame)
+      post({ type: 'drop', dx, dy, vx: ms ? (b.x - a.x) / ms : 0, vy: ms ? (b.y - a.y) / ms : 0 })
+      start = drag = null
+      return
+    }
+    drag = null
     if (!start || start.fired) return
     const t = e.changedTouches[0]
     const dx = t.clientX - start.x
@@ -321,6 +370,7 @@
     const sensitivity = (config.swipeSensitivity || 100) / 100
     const min = 100 / sensitivity
     if (Math.max(Math.abs(dx), Math.abs(dy)) > min && Date.now() - s.time < 800) {
+      if (config.dragCard) return
       // A vertical swipe that scrolled the card was a scroll, not a gesture.
       if (Math.abs(dx) > Math.abs(dy)) post({ type: 'swipe', dir: dx > 0 ? 'Right' : 'Left' })
       else if (!scrolled) post({ type: 'swipe', dir: dy > 0 ? 'Down' : 'Up' })

@@ -24,6 +24,8 @@ export type FrameEvent =
   | { type: 'shown'; side: 'question' | 'answer' }
   | { type: 'jsapi'; id: number; endpoint: string; data: unknown }
   | { type: 'reload' }
+  | { type: 'drag'; dx: number; dy: number }
+  | { type: 'drop'; dx: number; dy: number; vx: number; vy: number }
 
 export interface CardViewHandle {
   showQuestion(q: string, a: string, bodyClass: string, flag: number, marked: boolean): void
@@ -75,8 +77,16 @@ const CARD_RPCS = new Set(['getSchedulingStatesWithContext', 'setSchedulingState
 
 export const CardView = forwardRef<
   CardViewHandle,
-  { onEvent: (e: FrameEvent) => void; onReady?: () => void; gestures?: boolean; doubleTap?: boolean; className?: string }
->(function CardView({ onEvent, onReady, gestures = false, doubleTap = false, className }, ref) {
+  {
+    onEvent: (e: FrameEvent) => void
+    onReady?: () => void
+    gestures?: boolean
+    doubleTap?: boolean
+    /** Swipes move the whole card (drag and drop events), which the app animates. */
+    dragCard?: boolean
+    className?: string
+  }
+>(function CardView({ onEvent, onReady, gestures = false, doubleTap = false, dragCard = false, className }, ref) {
   const frame = useRef<HTMLIFrameElement>(null)
   const [doc, setDoc] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
@@ -125,6 +135,7 @@ export const CardView = forwardRef<
     theme,
     gestures,
     doubleTap,
+    dragCard,
     doubleTapMs: prefs.doubleTapTimeInterval,
     swipeSensitivity: prefs.swipeSensitivity,
     zoom: prefs.cardZoom,
@@ -183,6 +194,8 @@ export const CardView = forwardRef<
         case 'long-press':
         case 'key':
         case 'shown':
+        case 'drag':
+        case 'drop':
           eventRef.current(msg)
           break
       }
