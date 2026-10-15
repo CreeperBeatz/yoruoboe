@@ -1,6 +1,7 @@
 /**
  * The deck list (AnkiDroid's DeckPicker): nested decks with their due counts, the sync
- * button, the + speed dial, and each deck's long-press menu.
+ * button, the + menu (in the bar, so the tab bar under the list never changes), and each
+ * deck's long-press menu.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -27,7 +28,6 @@ function descendants(deck: DeckNode): number[] {
 export default function DeckPicker({ onMenu }: { onMenu: () => void; me: Me }) {
   const [data, setData] = useState<DeckList | null>(null)
   const [error, setError] = useState('')
-  const [fabOpen, setFabOpen] = useState(false)
   const [search, setSearch] = useState<string | null>(null)
   const [menu, setMenu] = useState<{ deck: DeckNode; at: { x: number; y: number } } | null>(null)
   // Rows moving because a deck was expanded or collapsed.
@@ -60,6 +60,7 @@ export default function DeckPicker({ onMenu }: { onMenu: () => void; me: Me }) {
     void load()
   }
 
+  const [openAdd, addMenu] = useMenu(() => addItems(load))
   const [openOverflow, overflowMenu] = useMenu((): MenuItem[] => [
     { label: data?.undo.undo ? `Undo ${data.undo.undo}` : 'Undo', icon: 'undo', disabled: !data?.undo.undo, onClick: undo },
     ...collectionTools(load),
@@ -143,6 +144,7 @@ export default function DeckPicker({ onMenu }: { onMenu: () => void; me: Me }) {
     <div className="screen">
       {search === null ? (
         <AppBar title="Anki" nav="menu" onNav={onMenu}>
+          <IconButton icon="add" label="Add" onClick={openAdd} />
           <IconButton icon="search" label="Search decks" onClick={() => setSearch('')} />
           {data?.undo.undo && <IconButton icon="undo" label={`Undo ${data.undo.undo}`} onClick={undo} />}
           <IconButton
@@ -158,7 +160,7 @@ export default function DeckPicker({ onMenu }: { onMenu: () => void; me: Me }) {
         <AppBar title={<DeckSearch value={search} onChange={setSearch} />} nav="back" onNav={() => setSearch(null)} />
       )}
       {syncing && <div className="progress-bar" />}
-      <div className="screen-body deck-list" onClick={() => setFabOpen(false)}>
+      <div className="screen-body deck-list">
         <PullToSync onSync={() => sync().then(load)} />
         {search === null && <InstallNote />}
         {error && !data && <div className="center-message">{error}</div>}
@@ -191,7 +193,7 @@ export default function DeckPicker({ onMenu }: { onMenu: () => void; me: Me }) {
         )}
         <div style={{ height: 96 }} />
       </div>
-      <Fab open={fabOpen} setOpen={setFabOpen} reload={load} />
+      {addMenu}
       {overflowMenu}
       {menu && (
         <Menu anchor={menu.at} items={deckActions(menu.deck, load)} onClose={() => setMenu(null)} />
@@ -288,11 +290,8 @@ function EmptyCollection() {
   )
 }
 
-function Fab({ open, setOpen, reload }: { open: boolean; setOpen: (v: boolean) => void; reload: () => void }) {
-  const run = (fn: () => void) => () => {
-    setOpen(false)
-    fn()
-  }
+/** What + offers: AnkiDroid's speed dial, as a menu. */
+function addItems(reload: () => void): MenuItem[] {
   const createDeck = async () => {
     const name = await prompt('Create deck', { label: 'Deck name', ok: 'Create' })
     if (!name?.trim()) return
@@ -302,50 +301,15 @@ function Fab({ open, setOpen, reload }: { open: boolean; setOpen: (v: boolean) =
       reload()
     }
   }
-  const items: { label: string; icon: Parameters<typeof Icon>[0]['name']; onClick: () => void }[] = [
-    { label: 'Get shared decks', icon: 'download', onClick: () => window.open('https://ankiweb.net/shared/decks', '_blank', 'noopener') },
-    { label: 'Create filtered deck', icon: 'filter', onClick: () => navigate('/filtered/0') },
-    { label: 'Create deck', icon: 'folder', onClick: createDeck },
-    { label: 'Image occlusion', icon: 'image', onClick: () => navigate('/note/add?io=1') },
+  return [
     { label: 'Add', icon: 'add', onClick: () => navigate('/note/add') },
+    { label: 'Image occlusion', icon: 'image', onClick: () => navigate('/note/add?io=1') },
+    'separator',
+    { label: 'Create deck', icon: 'folder', onClick: createDeck },
+    { label: 'Create filtered deck', icon: 'filter', onClick: () => navigate('/filtered/0') },
+    'separator',
+    { label: 'Get shared decks', icon: 'download', onClick: () => window.open('https://ankiweb.net/shared/decks', '_blank', 'noopener') },
   ]
-  return (
-    <>
-      {open && (
-        <>
-          <div className="scrim" onClick={() => setOpen(false)} />
-          <div className="fab-menu">
-            {items.map((i, n) => (
-              <button
-                key={i.label}
-                className="fab-mini-row"
-                style={{ animationDelay: `${(items.length - 1 - n) * 35}ms` }}
-                onClick={run(i.onClick)}
-              >
-                <span className="label">{i.label}</span>
-                <span className="mini">
-                  <Icon name={i.icon} />
-                </span>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-      <button
-        className={`fab${open ? ' open' : ''}`}
-        style={{ zIndex: open ? 53 : 20 }}
-        aria-label="Add"
-        onClick={() => setOpen(!open)}
-        onDoubleClick={() => {
-          // AnkiDroid: a double tap on the FAB goes straight to adding a note.
-          setOpen(false)
-          navigate('/note/add')
-        }}
-      >
-        <Icon name="add" />
-      </button>
-    </>
-  )
 }
 
 /** Pull down at the top of the list to sync, as in AnkiDroid. */

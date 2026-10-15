@@ -21,7 +21,9 @@ It is Anki itself rather than a re-implementation:
   Glass bars and buttons floating over the content, which get a backing once a list
   scrolls under them; a tab bar in place of AnkiDroid's drawer (`web/src/ui/TabBar.tsx`);
   large titles, inset grouped lists, iOS alerts and menus, the system font and colours,
-  and line icons after SF Symbols. Screens slide over each other as on iOS; the phone's
+  and line icons after SF Symbols. The card flips over to show its answer
+  (`web/src/ios/flip.ts`), and the answers are one glass bar under it. Screens slide over
+  each other as on iOS; the phone's
   Reduce Motion and Reduce Transparency settings are followed.
 
 ## How it fits together
