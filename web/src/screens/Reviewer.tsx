@@ -744,14 +744,8 @@ export default function Reviewer() {
               Show Answer
             </button>
           ) : (
-            buttons.map((ease, i) => (
-              <button
-                key={ease}
-                className={`ease-btn ease${ease}`}
-                style={{ animationDelay: `${i * 25}ms` }}
-                onClick={() => void answerCard(ease)}
-                disabled={busy}
-              >
+            buttons.map((ease) => (
+              <button key={ease} className={`ease-btn ease${ease}`} onClick={() => void answerCard(ease)} disabled={busy}>
                 {state?.showIntervals !== false && prefs.showIntervalsOnButtons && <span className="ivl">{labels[ease - 1]}</span>}
                 <span className="name">{EASE_NAMES[ease - 1]}</span>
               </button>
