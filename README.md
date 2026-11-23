@@ -1,10 +1,22 @@
 # YoruOboe
 
 YoruOboe is a flashcard app for the iPhone. It uses the engine of Anki and the layout
-of AnkiDroid. Your cards stay on your phone. The app syncs them with AnkiWeb.
+of AnkiDroid.
 
-YoruOboe is not in the App Store. You put your own copy on Cloudflare Pages, which is
-free. Then you add the app to the Home Screen of your iPhone.
+Main features:
+
+* Syncs to whatever server you need to sync to. Including AnkiWeb.
+* Works in Airplane mode: the app keeps a local database and works offline. When you reconnect to a network, it syncs the changes
+* Completely free on IoS, Optimized for IoS: I made this app because ankiweb did not get the job done for me. It is optimized for iPhone users.
+
+YoruOboe is not in the App Store. Getting the app there is a pain in the *** and costs money I wanted to avoid paying. So it's a PWA instead.
+100% of the needed functionalities are available in this PWA.
+
+Since this is not an official distribution, I **highly recommend hosting your own Cloudflare Page for the app**.
+The downside to making a PWA, as opposed to a normal app, is that the sync requests to AnkiWeb are made from the server's IP, not the phone's IP.
+1 or 2 users using the same IP for syncs isn't suspicious, but 50 becomes a reason for a ban on your AnkiWeb account(s).
+
+Hosting your own CloudFlare page for YoruOboe avoids that, because CloudFlare assigns your own personal server IP.
 
 YoruOboe is not made by Ankitects (Anki) or by the AnkiDroid project.
 
