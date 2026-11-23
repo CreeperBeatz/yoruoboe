@@ -5,7 +5,7 @@ syncs with AnkiWeb (or your own sync server), like AnkiDroid and AnkiMobile. The
 no app server: the host only serves the app's files and passes sync requests on.
 
 To set up your own: [Deploying](#deploying) (Cloudflare Pages: free, upload a zip), then
-[Installing on the iPhone](#installing-on-the-iphone).
+[Installing on iPhone](#installing-on-iphone-ios).
 
 YoruOboe is not made by or connected with Ankitects (Anki) or the AnkiDroid project.
 
@@ -132,39 +132,60 @@ account, no command line. You need a Cloudflare account (sign up at
 **As is: what you see is what you get.** A release is a finished version. Once
 uploaded, your copy stays exactly as it is: it doesn't update itself, nothing is
 promised about future versions, and there is no support. If a newer release comes out
-and you want it, you upload that one the same way (step 5).
+and you want it, you upload that one the same way (below, after step 7).
 
 #### 1. Download the app
 
 From [Releases](https://github.com/CreeperBeatz/yoruoboe/releases/latest), download
 `yoruoboe-<version>.zip` (under **Assets**). Don't unzip it.
 
-#### 2. Create the project
+#### 2. Open Workers & Pages
 
-In the [Cloudflare dashboard](https://dash.cloudflare.com), go to **Workers & Pages**,
-select **Create application**, then **Get started** next to **Drag and drop your
-files**.
+Sign in to the [Cloudflare dashboard](https://dash.cloudflare.com). Type `pages` in the
+search box and choose **Workers & Pages** (or pick it in the menu on the left). Then
+select **Create application**.
 
-<!-- screenshot: docs/install/cloudflare/01-create.png, Workers & Pages > Create application, "Drag and drop your files" > Get started ringed -->
+<img src="docs/install/cloudflare/01-workers-pages.webp" width="640" alt="The dashboard's search, Workers & Pages ringed">
 
-#### 3. Upload
+#### 3. Take the Pages way
 
-Type a project name, for example `yoruoboe`: it becomes the address,
-`https://yoruoboe.pages.dev` (if the name is taken, Cloudflare adds a few letters).
-Select **Create project**, drop the zip from step 1 onto the upload box, and select
-**Deploy site**.
+Cloudflare offers to make a Worker. Don't pick any of those: at the bottom, under *Need
+to use the legacy Pages workflow?*, select **Continue to Pages**.
 
-<!-- screenshot: docs/install/cloudflare/02-upload.png, the project name filled in and the zip dropped, Deploy site ringed -->
+<img src="docs/install/cloudflare/02-continue-to-pages.webp" width="480" alt="Create an app, with Continue to Pages ringed at the bottom">
 
-#### 4. Open it
+#### 4. Choose drag and drop
 
-When the upload finishes, Cloudflare shows the address. Open it on the iPhone and add it
-to the Home Screen ([Installing on the iPhone](#installing-on-the-iphone)). The first
-minute or two after a new project, the address may not answer yet.
+Next to **Drag and drop your files**, select **Get started**.
 
-<!-- screenshot: docs/install/cloudflare/03-deployed.png, the finished deployment with its pages.dev address -->
+<img src="docs/install/cloudflare/03-drag-and-drop.webp" width="520" alt="Get started with Pages, Drag and drop your files ringed">
 
-#### 5. Your own domain, or a newer release (optional)
+#### 5. Name the project
+
+Type a project name, for example `yoruoboe`. It becomes the address,
+`https://<name>.pages.dev`; a green check means the name is free. Select **Create
+project**.
+
+<img src="docs/install/cloudflare/04-project-name.webp" width="720" alt="Project name yoruoboe, Create project ringed">
+
+#### 6. Upload the zip
+
+Drop the zip from step 1 onto the upload box that appears, and wait for *All files
+were successfully uploaded*. The yellow note *Specifying a _routes.json is an
+experimental feature* is expected: that file is what sends sync to the right place.
+Select **Deploy site**.
+
+<img src="docs/install/cloudflare/05-deploy-site.webp" width="720" alt="260 files uploaded, the _routes.json note, Deploy site ringed">
+
+#### 7. Open it
+
+Cloudflare says **Success!** with the address. Open that address on the iPhone and add
+it to the Home Screen ([Installing on iPhone](#installing-on-iphone-ios)). For the first
+minute or two a new address may not answer yet.
+
+<img src="docs/install/cloudflare/06-success.webp" width="600" alt="Success! Your project is deployed, with its pages.dev address">
+
+#### Your own domain, or a newer release (optional)
 
 - **Your own domain:** in **Workers & Pages**, select the project > **Custom domains** >
   **Set up a domain**, type the hostname (for example `yoruoboe.example.org`), and
@@ -173,8 +194,6 @@ minute or two after a new project, the address may not answer yet.
   address: at a new domain the phone starts empty (and syncs down again).
 - **A newer release:** select the project > **Create a new deployment** > **Production**,
   and drop the new zip. Phones pick it up the next time the app is opened twice.
-
-<!-- screenshot: docs/install/cloudflare/04-custom-domain.png, Custom domains > Set up a domain -->
 
 #### If something doesn't work
 
@@ -248,28 +267,33 @@ the service; after that `publish.sh` alone deploys.
 Behind a Cloudflare Tunnel, keep **Rocket Loader** and **Bot Fight Mode** off for the
 app's hostname, and expect the same 100 MB request limit as on Pages (above).
 
-## Installing on the iPhone
+## Installing on iPhone (iOS)
 
-The app is meant to run from the Home Screen: there it opens full screen, keeps its
-data, and works offline. Opened in a browser on an iPhone or iPad, the app shows these
-steps itself, for the browser in use (the first time, then from the note on the deck
-list and from Settings). It needs iOS 16.4 or later.
+YoruOboe is a web app: there is no App Store download. You add it to the Home Screen
+from the browser, and from there it opens full screen like any app, keeps its data, and
+works offline. It needs iOS 16.4 or later (iPad too).
+
+You need your copy's address: `https://<name>.pages.dev` from
+[Deploying](#on-cloudflare-pages-no-machine), or your own domain. The screenshots show
+`your-app.pages.dev` in its place. Opened in a browser on the phone, the app also shows
+these steps itself (the first time, then from the note on the deck list and from
+Settings).
 
 ### Safari
 
-1. Open your app's address (`https://yoruoboe.pages.dev`, or your own domain) and tap
-   **•••** at the bottom right.
-   (No ••• button? Tap **Share** and go to step 3.)
+1. Open your app's address in Safari, and tap **☰** in the address bar, on the left.
+   (No ☰ button? Tap **•••** at the bottom right. No ••• button either? Tap **Share**
+   and go to step 3.)
 
-   <img src="web/src/install/step1.webp" width="420" alt="Safari's address bar, with the ••• button">
+   <img src="web/src/install/step1.webp" width="420" alt="Safari's address bar, with the ☰ button ringed">
 
 2. Tap **Share**.
 
-   <img src="web/src/install/step2.webp" width="320" alt="Safari's menu, Share at the top">
+   <img src="web/src/install/step2.webp" width="320" alt="Safari's menu, Share ringed">
 
 3. Tap **View More**.
 
-   <img src="web/src/install/step3.webp" width="360" alt="The share sheet, View More">
+   <img src="web/src/install/step3.webp" width="360" alt="The share sheet for YoruOboe, View More ringed">
 
 4. Tap **Add to Home Screen**.
 
@@ -277,11 +301,11 @@ list and from Settings). It needs iOS 16.4 or later.
 
 5. Keep **Open as Web App** on, and tap **Add**.
 
-   <img src="web/src/install/step5.webp" width="360" alt="Add to Home Screen, Open as Web App on">
+   <img src="web/src/install/step5.webp" width="360" alt="Add to Home Screen for YoruOboe, Open as Web App on, Add ringed">
 
 ### Chrome
 
-1. Open your app's address and tap **Share**, in the address bar.
+1. Open your app's address in Chrome and tap **Share**, in the address bar.
 
    <img src="web/src/install/chrome1.webp" width="420" alt="Chrome's address bar, with the Share button">
 
@@ -311,13 +335,12 @@ screens. Brave, and apps that open links inside themselves (Instagram, Messenger
 cannot add to the Home Screen: open the address in Safari. The app says so when it is
 in one of them.
 
-Screenshots: Safari's are BetterRTK's install guide's, with its name and icon replaced
-by this app's; Chrome's were taken with this app (`docs/install/source`). Both are cut
-and ringed by `node scripts/make_install_shots.mjs`, which also writes the app's name
-over the one they were taken with.
-
 A Home Screen icon keeps the picture it had when it was added: after the icon changes,
 delete it and add it again (the collection stays).
+
+Screenshots: Safari's are BetterRTK's install guide's, Chrome's were taken with this app
+(`docs/install/source`); `node scripts/make_install_shots.mjs` cuts and rings them and
+puts this app's name, icon and a placeholder address in.
 
 ## Keep Anki versions together
 
@@ -366,7 +389,7 @@ journals kept in memory on the IndexedDB store.
 | `web/public/` | the card frame, and the script put into Anki's pages |
 | `deploy/` | `serve.py`, the Pi's service and scripts; Cloudflare's sync forwarder (`cloudflare/_worker.js`) |
 | `scripts/` | Anki's pages from the aqt wheel; the icons and the install guide's screenshots (`make_*.mjs`) |
-| `docs/` | the AnkiDroid parity checklist, how Anki's pages talk to their host, the Chrome install screenshots as taken |
+| `docs/` | the AnkiDroid parity checklist, how Anki's pages talk to their host, the Chrome install screenshots as taken, the Cloudflare guide's screenshots |
 | `legacy/` | the first, server-based version, for reference |
 | `vendor/`, `reference/` | downloaded: Anki's pages; AnkiDroid's and Anki's source, for reference |
 

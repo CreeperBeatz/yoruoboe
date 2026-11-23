@@ -24,8 +24,8 @@ const T = {
   title: 'YoruOboe is designed to work from your Home Screen',
   why: 'In the browser, you might see some bugs or glitches, and the browser may clear your collection to save space.',
   own: 'The app on the Home Screen keeps its own collection, apart from this browser’s: log in or import there.',
-  s1: 'Tap ••• at the bottom right.',
-  s1b: 'No ••• button? Tap Share, then go to step 3.',
+  s1: 'Tap ☰ in the address bar, on the left.',
+  s1b: 'No ☰ button? Tap ••• at the bottom right. No ••• button? Tap Share, then go to step 3.',
   s2: 'Tap Share.',
   s3: 'Tap View More.',
   s4: 'Tap Add to Home Screen.',
@@ -74,11 +74,11 @@ function browser(): Browser {
 
 const STEPS: Record<Exclude<Browser, 'brave' | 'inApp'>, Step[]> = {
   safari: [
-    { text: 's1', note: 's1b', img: step1, h: 234 },
-    { text: 's2', img: step2, h: 748 },
-    { text: 's3', img: step3, h: 573 },
-    { text: 's4', img: step4, h: 403 },
-    { text: 's5', img: step5, h: 488 },
+    { text: 's1', note: 's1b', img: step1, h: 209 },
+    { text: 's2', img: step2, h: 554 },
+    { text: 's3', img: step3, h: 603 },
+    { text: 's4', img: step4, h: 426 },
+    { text: 's5', img: step5, h: 476 },
   ],
   // After Share, Chrome's steps are Safari's: the same system screens.
   chrome: [
