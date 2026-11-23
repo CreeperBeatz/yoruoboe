@@ -118,13 +118,15 @@ function ankiWeb(): Plugin {
       }
       this.emitFile({ type: 'asset', fileName: 'anki-page.html', source: ankiPageHtml(false) })
       // Cloudflare Pages: Anki's pages on first load, before the service worker routes them
-      // (deploy/serve.py does the same on the Pi).
+      // (deploy/serve.py does the same on the Pi). Pages serves x.html at /x and redirects
+      // /x.html there, which would lose the page's own path: so the target is /x.
+      // The first rule that matches wins: the editor's assets before /editor/*.
       const redirects = [
+        '/editor/_anki/* /_anki/:splat 200',
         ...ANKI_PAGES.flatMap((p) => {
-          const file = UNTRUSTED_PAGES.has(p) ? '/anki-page-untrusted.html' : '/anki-page.html'
+          const file = UNTRUSTED_PAGES.has(p) ? '/anki-page-untrusted' : '/anki-page'
           return [`/${p} ${file} 200`, `/${p}/* ${file} 200`]
         }),
-        '/editor/_anki/* /_anki/:splat 200',
       ]
       this.emitFile({ type: 'asset', fileName: '_redirects', source: `${redirects.join('\n')}\n` })
       this.emitFile({

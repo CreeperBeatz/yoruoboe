@@ -30,7 +30,7 @@ export default function Login({ server, onDone, onSkip }: { server: string; onDo
     <div className="screen login">
       <div className="login-top">
         <img src="/icon-192.png" alt="" className="login-logo" />
-        <h1>Anki</h1>
+        <h1>YoruOboe</h1>
       </div>
       <form className="login-form" onSubmit={submit}>
         <p className="login-hint">

@@ -21,7 +21,7 @@ import chrome4 from './chrome4.webp'
 import './install.css'
 
 const T = {
-  title: 'Anki is designed to work from your Home Screen',
+  title: 'YoruOboe is designed to work from your Home Screen',
   why: 'In the browser, you might see some bugs or glitches, and the browser may clear your collection to save space.',
   own: 'The app on the Home Screen keeps its own collection, apart from this browser’s: log in or import there.',
   s1: 'Tap ••• at the bottom right.',
@@ -41,9 +41,9 @@ const T = {
   handoff: 'Or copy the link and paste it into Safari.',
   copy: 'Copy link',
   copied: 'Copied',
-  done: 'Then open Anki from your Home Screen.',
+  done: 'Then open YoruOboe from your Home Screen.',
   later: 'Not now',
-  noteLead: 'Anki works better as an app.',
+  noteLead: 'YoruOboe works better as an app.',
   noteHow: 'Show me how',
   noteInstall: 'Install the app',
   noteClose: 'Close',

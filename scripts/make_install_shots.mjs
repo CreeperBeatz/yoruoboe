@@ -1,7 +1,8 @@
 // The install guide's screenshots (web/src/install/InstallGuide.tsx, and the README):
 //  - Safari, step1-5: BetterRTK's screenshots of the same screens
 //    (../BetterRTK/web/src/install), with its name, icon, address and tab bar covered
-//    and this app's put in their place;
+//    and this app's put in their place (the committed ones are from BetterRTK's earlier
+//    screenshots: run against its newer ones, the areas below need measuring again);
 //  - Chrome, chrome1-4: this app's own, taken on an iPhone (docs/install/source), cut to
 //    the part that matters and ringed where to tap, as BetterRTK's are.
 //
@@ -20,6 +21,7 @@ mkdirSync(OUT, { recursive: true })
 
 const ICON = `data:image/png;base64,${readFileSync(new URL('../web/public/icon-512.png', import.meta.url)).toString('base64')}`
 const HOST = 'anki.betterkanjidictionary.org'
+const NAME = 'YoruOboe'
 const RING = '#d4442e'
 
 // Per screenshot: areas to cover (filled with the colour at `sample`), then what to draw.
@@ -33,7 +35,7 @@ const EDITS = {
   step3: [
     { cover: [46, 20, 520, 80], sample: [30, 140] },
     { icon: [50, 24, 100, 100], radius: 22 },
-    { text: 'Anki', at: [172, 52], size: 23, color: '#ffffff', weight: 600 },
+    { text: NAME, at: [172, 52], size: 23, color: '#ffffff', weight: 600 },
     { text: HOST, at: [172, 82], size: 19, color: '#9a9a9a' },
   ],
   step4: [],
@@ -42,7 +44,7 @@ const EDITS = {
     { cover: [130, 158, 410, 48], sample: [530, 182] },
     { cover: [130, 232, 400, 42], sample: [560, 252] },
     { icon: [24, 170, 88, 88], radius: 20 },
-    { text: 'Anki', at: [138, 185], size: 22, color: '#ffffff' },
+    { text: NAME, at: [138, 185], size: 22, color: '#ffffff' },
     { text: `https://${HOST}/`, at: [138, 257], size: 21, color: '#8a8a8a', maxWidth: 400 },
   ],
 }
@@ -51,13 +53,25 @@ const EDITS = {
 // rings, in the screenshot's pixels.
 const CHROME_CROPS = {
   chrome1: { crop: [0, 150, 1179, 300], rings: [{ circle: [944, 246, 56] }] },
-  chrome2: { crop: [16, 278, 1147, 1138], rings: [{ rect: [880, 1004, 200, 330, 26] }] },
+  chrome2: {
+    crop: [16, 278, 1147, 1138],
+    rings: [{ rect: [880, 1004, 200, 330, 26] }],
+    // The name, taken when the app was called Anki: drawn over, in the cut's pixels.
+    edits: [
+      { cover: [160, 56, 120, 38], sample: [300, 75] },
+      { text: NAME, at: [165, 75], size: 23, color: '#ffffff', weight: 600 },
+    ],
+  },
   chrome3: { crop: [0, 1600, 1179, 956], rings: [{ rect: [50, 2128, 1082, 148, 28] }] },
   chrome4: {
     crop: [0, 210, 1179, 952],
     rings: [
       { rect: [932, 250, 206, 140, 36] },
       { rect: [936, 892, 202, 106, 30] },
+    ],
+    edits: [
+      { cover: [132, 146, 120, 44], sample: [300, 168] },
+      { text: NAME, at: [138, 168], size: 23, color: '#ffffff' },
     ],
   },
 }
@@ -108,10 +122,10 @@ for (const [name, edits] of Object.entries(EDITS)) {
   )
   write(name, png)
 }
-for (const [name, { crop, rings }] of Object.entries(CHROME_CROPS)) {
+for (const [name, { crop, rings, edits = [] }] of Object.entries(CHROME_CROPS)) {
   const src = `data:image/png;base64,${readFileSync(new URL(`${name}.png`, CHROME)).toString('base64')}`
   const webp = await page.evaluate(
-    async ({ src, crop, rings, color }) => {
+    async ({ src, crop, rings, edits, color }) => {
       const img = await new Promise((resolve, reject) => {
         const i = new Image()
         i.onload = () => resolve(i)
@@ -139,9 +153,21 @@ for (const [name, { crop, rings }] of Object.entries(CHROME_CROPS)) {
         }
         ctx.stroke()
       }
+      for (const e of edits) {
+        if (e.cover) {
+          const [r, g, b] = ctx.getImageData(e.sample[0], e.sample[1], 1, 1).data
+          ctx.fillStyle = `rgb(${r},${g},${b})`
+          ctx.fillRect(...e.cover)
+        } else if (e.text) {
+          ctx.fillStyle = e.color
+          ctx.font = `${e.weight ?? 400} ${e.size}px "Segoe UI", "Helvetica Neue", Arial, sans-serif`
+          ctx.textBaseline = 'middle'
+          ctx.fillText(e.text, e.at[0], e.at[1])
+        }
+      }
       return canvas.toDataURL('image/webp', 0.8)
     },
-    { src, crop, rings, color: RING },
+    { src, crop, rings, edits, color: RING },
   )
   write(name, webp)
 }

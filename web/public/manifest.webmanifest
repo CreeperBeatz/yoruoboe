@@ -1,7 +1,7 @@
 {
-  "name": "Anki",
-  "short_name": "Anki",
-  "description": "Anki flashcards, as AnkiDroid: the collection on your device, synced with AnkiWeb.",
+  "name": "YoruOboe",
+  "short_name": "YoruOboe",
+  "description": "Flashcards on Anki's engine, laid out as AnkiDroid: the collection on your device, synced with AnkiWeb.",
   "id": "/",
   "start_url": "/",
   "scope": "/",

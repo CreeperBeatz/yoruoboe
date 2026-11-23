@@ -52,7 +52,15 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(SHELL_CACHE)
-      .then((cache) => cache.addAll([...SHELL, ...FRAME_FILES.filter((f) => f !== '/card-frame')]))
+      .then((cache) =>
+        Promise.all(
+          [...SHELL, ...FRAME_FILES.filter((f) => f !== '/card-frame')].map(async (path) => {
+            const res = await fetch(path)
+            if (!res.ok) throw new Error(`${path}: ${res.status}`)
+            await cache.put(path, plain(res))
+          }),
+        ),
+      )
       .then(() => self.skipWaiting()),
   )
 })
@@ -173,9 +181,19 @@ async function fromApp(name) {
 async function cachedOrNetwork(path, name) {
   const hit = await caches.match(path, ANY)
   if (hit) return hit
-  const res = await fetch(path)
+  const res = plain(await fetch(path))
   if (res.ok && !DEV) (await caches.open(name)).put(path, res.clone())
   return res
+}
+
+/**
+ * The response without the mark of a redirect it followed. Cloudflare Pages redirects
+ * /x.html to /x, and a browser refuses a redirected response as the answer to a page
+ * load (Anki's pages, in their frame).
+ */
+function plain(res) {
+  if (!res.redirected) return res
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers: res.headers })
 }
 
 async function cacheFirst(req, name) {

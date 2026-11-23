@@ -4,8 +4,10 @@
 // CORS), so the app posts to its own address, /aw/<host>/<path>, and this passes the
 // request on to https://<host>.ankiweb.net/<path> unchanged. Nothing is stored.
 //
-// Deploy with the built app (see README, "Cloudflare Pages"):
-//   cd deploy/cloudflare && npx wrangler pages deploy ../../web/dist --project-name anki
+// It sits at the top of the repository because that is where Cloudflare Pages looks
+// for functions/. Deployed with the built app (see README, "Cloudflare Pages"): by
+// Cloudflare's Git integration, or from the repository's top directory with
+//   npx wrangler pages deploy web/dist --project-name yoruoboe
 
 const HOST = /^sync\d{0,3}$/
 const REQUEST_HEADERS = ['anki-sync', 'content-type', 'content-length']

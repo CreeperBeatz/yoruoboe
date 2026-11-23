@@ -143,7 +143,7 @@ export default function DeckPicker({ onMenu }: { onMenu: () => void; me: Me }) {
   return (
     <div className="screen">
       {search === null ? (
-        <AppBar title="Anki" nav="menu" onNav={onMenu}>
+        <AppBar title="YoruOboe" nav="menu" onNav={onMenu}>
           <IconButton icon="add" label="Add" onClick={openAdd} />
           <IconButton icon="search" label="Search decks" onClick={() => setSearch('')} />
           {data?.undo.undo && <IconButton icon="undo" label={`Undo ${data.undo.undo}`} onClick={undo} />}

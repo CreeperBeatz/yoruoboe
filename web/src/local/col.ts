@@ -41,7 +41,7 @@ async function claimStorage(): Promise<void> {
       return lock ? new Promise<void>(() => {}) : undefined
     })
   })
-  if (!got) throw new Error('Anki is open in another window or tab. Close it, then try again.')
+  if (!got) throw new Error('YoruOboe is open in another window or tab. Close it, then try again.')
 }
 
 /** Ask the browser not to clear the collection when space runs low (granted to home-screen apps). */

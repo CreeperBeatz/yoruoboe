@@ -493,7 +493,7 @@ function About() {
     <>
       <div className="about">
         <img src="/icon-192.png" alt="" />
-        <h2>Anki for the web</h2>
+        <h2>YoruOboe</h2>
         <p>An AnkiDroid-style app for any browser, built on Anki {version}.</p>
         <p>
           Scheduling, the editor, deck options and statistics are Anki’s own (AGPL-3.0, Ankitects Pty Ltd and contributors). Layout and features follow AnkiDroid (GPL-3.0).
