@@ -129,6 +129,14 @@ function ankiWeb(): Plugin {
         }),
       ]
       this.emitFile({ type: 'asset', fileName: '_redirects', source: `${redirects.join('\n')}\n` })
+      // Cloudflare Pages: the sync forwarder (deploy/cloudflare/_worker.js), run for /aw/*
+      // only, so that the built folder alone is the whole site.
+      this.emitFile({
+        type: 'asset',
+        fileName: '_worker.js',
+        source: readFileSync(resolve(import.meta.dirname, '../deploy/cloudflare/_worker.js')),
+      })
+      this.emitFile({ type: 'asset', fileName: '_routes.json', source: `${JSON.stringify({ version: 1, include: ['/aw/*'], exclude: [] })}\n` })
       this.emitFile({
         type: 'asset',
         fileName: '_headers',
@@ -149,6 +157,7 @@ function ankiWeb(): Plugin {
         '/anki-page.html', '/anki-page-untrusted.html',
       ])
       for (const [name, out] of Object.entries(bundle)) {
+        if (name === '_worker.js') continue // Cloudflare's, never served
         if (out.type === 'chunk' || /\.(css|js|mjs|wasm|woff2)$/.test(name)) shell.add(`/${name}`)
       }
       const files = [...shell].sort()

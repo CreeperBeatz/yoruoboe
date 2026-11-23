@@ -4,7 +4,7 @@ AnkiDroid, as an app you install from Safari. Your collection lives on the phone
 syncs with AnkiWeb (or your own sync server), like AnkiDroid and AnkiMobile. There is
 no app server: the host only serves the app's files and passes sync requests on.
 
-To set up your own: [Deploying](#deploying) (Cloudflare Pages, free, a few clicks), then
+To set up your own: [Deploying](#deploying) (Cloudflare Pages: free, upload a zip), then
 [Installing on the iPhone](#installing-on-the-iphone).
 
 YoruOboe is not made by or connected with Ankitects (Anki) or the AnkiDroid project.
@@ -125,107 +125,80 @@ prebuilt (`web/src/engine/pkg`), so building needs Node 20+ and Python 3, not Ru
 
 ### On Cloudflare Pages (no machine)
 
-Cloudflare hosts the files, and a Pages Function (`functions/aw/`) passes sync requests
-on to AnkiWeb. The free plan is enough. You need a GitHub account and a Cloudflare
-account (sign up at [dash.cloudflare.com](https://dash.cloudflare.com/sign-up); no
-domain or card needed).
+You upload the app, already built, to Cloudflare, which hosts it for free. No GitHub
+account, no command line. You need a Cloudflare account (sign up at
+[dash.cloudflare.com](https://dash.cloudflare.com/sign-up); no domain or card needed).
 
-#### 1. Fork the repository
+**As is: what you see is what you get.** A release is a finished version. Once
+uploaded, your copy stays exactly as it is: it doesn't update itself, nothing is
+promised about future versions, and there is no support. If a newer release comes out
+and you want it, you upload that one the same way (step 5).
 
-On [github.com/CreeperBeatz/yoruoboe](https://github.com/CreeperBeatz/yoruoboe), tap
-**Fork**, then **Create fork**. Cloudflare builds from your fork, and you choose when to
-take updates (step 6).
+#### 1. Download the app
 
-<!-- screenshot: docs/install/cloudflare/01-fork.png, GitHub's Fork button on the repository page, ringed -->
+From [Releases](https://github.com/CreeperBeatz/yoruoboe/releases/latest), download
+`yoruoboe-<version>.zip` (under **Assets**). Don't unzip it.
 
-#### 2. Create the Pages project
+#### 2. Create the project
 
 In the [Cloudflare dashboard](https://dash.cloudflare.com), go to **Workers & Pages**,
-select **Create application**, then the **Pages** tab, then **Connect to Git**.
+select **Create application**, then **Get started** next to **Drag and drop your
+files**.
 
-<!-- screenshot: docs/install/cloudflare/02-create.png, Workers & Pages > Create application > Pages, Connect to Git ringed -->
+<!-- screenshot: docs/install/cloudflare/01-create.png, Workers & Pages > Create application, "Drag and drop your files" > Get started ringed -->
 
-Select **GitHub** and sign in. The first time, GitHub asks which repositories Cloudflare
-may read: **Only select repositories** > your `yoruoboe` fork is enough. Back in
-Cloudflare, pick `yoruoboe` from the list and select **Begin setup**.
+#### 3. Upload
 
-<!-- screenshot: docs/install/cloudflare/03-repository.png, the repository list with yoruoboe selected, Begin setup ringed -->
+Type a project name, for example `yoruoboe`: it becomes the address,
+`https://yoruoboe.pages.dev` (if the name is taken, Cloudflare adds a few letters).
+Select **Create project**, drop the zip from step 1 onto the upload box, and select
+**Deploy site**.
 
-#### 3. Build settings
-
-On **Set up builds and deployments**, fill in exactly this:
-
-| Field | Value |
-|---|---|
-| Project name | `yoruoboe` (becomes `yoruoboe.pages.dev`; pick another if taken) |
-| Production branch | `main` |
-| Framework preset | `None` |
-| Build command | `python3 scripts/fetch_anki_web.py && cd web && npm ci && npm run build` |
-| Build output directory | `web/dist` |
-| Root directory (advanced) | leave empty |
-
-No environment variables are needed: the Node version comes from `.node-version`.
-
-<!-- screenshot: docs/install/cloudflare/04-build-settings.png, the build settings filled in as in the table -->
-
-Select **Save and Deploy**. The build takes a few minutes: it downloads Anki's pages
-for the release in `ANKI_VERSION` from PyPI and builds the app.
-
-<!-- screenshot: docs/install/cloudflare/05-deployed.png, the finished deployment with its pages.dev link -->
+<!-- screenshot: docs/install/cloudflare/02-upload.png, the project name filled in and the zip dropped, Deploy site ringed -->
 
 #### 4. Open it
 
-When it says **Success**, the app is at `https://yoruoboe.pages.dev` (your project's
-name). Open it on the iPhone and add it to the Home Screen
-([Installing on the iPhone](#installing-on-the-iphone)).
+When the upload finishes, Cloudflare shows the address. Open it on the iPhone and add it
+to the Home Screen ([Installing on the iPhone](#installing-on-the-iphone)). The first
+minute or two after a new project, the address may not answer yet.
 
-#### 5. Your own domain (optional)
+<!-- screenshot: docs/install/cloudflare/03-deployed.png, the finished deployment with its pages.dev address -->
 
-In **Workers & Pages**, select the project > **Custom domains** > **Set up a domain**,
-type the hostname (for example `yoruoboe.example.org`), and **Continue**. With the
-domain's DNS on Cloudflare, the record is added for you; otherwise add the CNAME it
-shows (`yoruoboe.example.org` to `yoruoboe.pages.dev`) at your DNS provider. A
-hostname can't point at a Pages project and a tunnel at the same time.
+#### 5. Your own domain, or a newer release (optional)
 
-<!-- screenshot: docs/install/cloudflare/06-custom-domain.png, Custom domains > Set up a domain -->
+- **Your own domain:** in **Workers & Pages**, select the project > **Custom domains** >
+  **Set up a domain**, type the hostname (for example `yoruoboe.example.org`), and
+  **Continue**. With the domain's DNS on Cloudflare the record is added for you;
+  otherwise add the CNAME it shows at your DNS provider. The app's data belongs to its
+  address: at a new domain the phone starts empty (and syncs down again).
+- **A newer release:** select the project > **Create a new deployment** > **Production**,
+  and drop the new zip. Phones pick it up the next time the app is opened twice.
 
-The app's data belongs to its address: a phone that used `yoruoboe.pages.dev` starts
-empty at the new domain (and syncs down again).
-
-#### 6. Updates
-
-On GitHub, open your fork and tap **Sync fork** > **Update branch**. Cloudflare sees the
-push to `main` and deploys again; the app updates itself the next time it is opened
-twice.
-
-<!-- screenshot: docs/install/cloudflare/07-sync-fork.png, Sync fork > Update branch on the fork -->
+<!-- screenshot: docs/install/cloudflare/04-custom-domain.png, Custom domains > Set up a domain -->
 
 #### If something doesn't work
 
-- **The build fails at `python3: not found`**: change the build command's `python3` to
-  `python` (the project > Settings > Build > Build configuration > Edit), then retry
-  the deployment.
-- **Sync fails while the app otherwise works**: on a custom domain, keep **Rocket
+- **Sync fails while the app otherwise works:** on a custom domain, keep **Rocket
   Loader** and **Bot Fight Mode** off in that domain's dashboard. Sync requests are
   scripted POSTs that can't answer a challenge.
 - Cloudflare's free plan limits a request to 100 MB, which caps a full upload of a
   collection; media syncs in small batches and is not affected.
 
-#### Without GitHub: from a computer
+#### How it works, and building it yourself
 
-With Node 20+, either from a release's `yoruoboe-<version>-cloudflare.zip` (already
-built), or from a clone after building it (`python3 scripts/fetch_anki_web.py`, then
-`cd web && npm ci && npm run build && cd ..`):
+The zip is the contents of `web/dist`: the app's files, plus `_worker.js`
+(`deploy/cloudflare/_worker.js`), which passes sync requests on to AnkiWeb, and
+`_routes.json`, which sends only those (`/aw/*`) to it. `_redirects` and `_headers` do
+for Anki's pages what `serve.py` does on a server.
 
-    npx wrangler login                                       # opens a browser, once
-    npx wrangler pages deploy web/dist --project-name yoruoboe
+To build it from the source instead, with Node 20+ and Python 3:
 
-In the unzipped release, the folder is `dist` rather than `web/dist`. Run it where
-`functions/` is: wrangler uploads it with the files. The dashboard's drag-and-drop
-upload won't do: it leaves out `functions/`, so sync wouldn't work.
+    python3 scripts/fetch_anki_web.py
+    cd web && npm ci && npm run build
 
-`_redirects` and `_headers` (made by the build) do for Anki's pages what `serve.py`
-does on a server.
+and upload `web/dist` (the folder, or a zip of what is in it) as above. With Cloudflare's
+command line, `npx wrangler pages deploy web/dist --project-name yoruoboe` does the
+same.
 
 ### On a Linux server or a Raspberry Pi
 
@@ -391,8 +364,7 @@ journals kept in memory on the IndexedDB store.
 | `web/src/local/` | the app's API, answered on the device |
 | `web/src/screens/` | the screens, named as AnkiDroid's are |
 | `web/public/` | the card frame, and the script put into Anki's pages |
-| `deploy/` | `serve.py`, the Pi's service and scripts |
-| `functions/` | the Cloudflare Pages Function that passes sync on to AnkiWeb |
+| `deploy/` | `serve.py`, the Pi's service and scripts; Cloudflare's sync forwarder (`cloudflare/_worker.js`) |
 | `scripts/` | Anki's pages from the aqt wheel; the icons and the install guide's screenshots (`make_*.mjs`) |
 | `docs/` | the AnkiDroid parity checklist, how Anki's pages talk to their host, the Chrome install screenshots as taken |
 | `legacy/` | the first, server-based version, for reference |
@@ -402,4 +374,5 @@ journals kept in memory on the IndexedDB store.
 
 AGPL-3.0 (`LICENSE`), as Anki's code it is built on. Anki is © Ankitects Pty Ltd and
 contributors; AnkiDroid, whose layout this follows, is GPL-3.0. If you run a copy for
-other people, the AGPL asks you to offer them its source: a link to your fork does it.
+other people, the AGPL asks you to offer them its source: a link to this repository
+does it (or to your changed source, if you changed it).
