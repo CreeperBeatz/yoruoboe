@@ -12,6 +12,8 @@ Main features:
 YoruOboe is not in the App Store. Getting the app there is a pain in the *** and costs money I wanted to avoid paying. So it's a PWA instead.
 100% of the needed functionalities are available in this PWA.
 
+You can test out the app at [yoruoboe.pages.dev](https://yoruoboe.pages.dev). 
+
 Since this is not an official distribution, I **highly recommend hosting your own Cloudflare Page for the app**.
 The downside to making a PWA, as opposed to a normal app, is that the sync requests to AnkiWeb are made from the server's IP, not the phone's IP.
 1 or 2 users using the same IP for syncs isn't suspicious, but 50 becomes a reason for a ban on your AnkiWeb account(s).
